@@ -41,20 +41,21 @@ public class BlocksWriter implements AutoCloseable {
 			this.objWriter.beginObject(block.getBlock().getName().asString());
 			for (Direction dir : Direction.values()) {
 				for (BakedQuad quad : model.getQuads(block, dir, random)) {
-					int[] vertices = new int[4];
+					Vec3d[] vertices = BlocksWriter.decodeVertices(quad.getVertexData());
+					int[] vertexIndices = new int[vertices.length];
 					int i = 0;
 
-					for (Vec3d vertex : BlocksWriter.decodeVertices(quad.getVertexData())) {
+					for (Vec3d vertex : vertices) {
 						Integer vertexIndex = vertexCache.putIfAbsent(vertex, vertexCache.size());
 						if (vertexIndex == null) {
 							this.objWriter.writeVertex(vertex);
-							vertices[i++] = vertexCache.size();
+							vertexIndices[i++] = vertexCache.size();
 						} else {
-							vertices[i++] = vertexIndex;
+							vertexIndices[i++] = vertexIndex;
 						}
 					}
 
-					this.objWriter.writeFace(dir.getId(), vertices);
+					this.objWriter.writeFace(dir.getId(), vertexIndices);
 				}
 			}
 
