@@ -7,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.FileSystems;
 import net.minecraft.util.math.Vec3d;
 
-public class ObjWriter {
+public class ObjWriter implements AutoCloseable {
 	private final BufferedWriter file;
 
 	public ObjWriter(String path) throws IOException {
