@@ -18,8 +18,12 @@ import fi.dy.masa.malilib.config.HudAlignment;
 import java.util.ArrayList;
 
 public class RenderHandler implements IRenderer {
+	public static boolean enableRendering = true;
+
 	@Override
 	public void onRenderWorldLast(float partialTicks, MatrixStack matrices) {
+		if (!enableRendering) return;
+
 		if (Selection.a != null && Selection.b != null) {
 			renderBox(Selection.a, Selection.b, new Color4f(1.0f, 0.0f, 0.0f), new Color4f(0.2f, 0.7f, 0.7f, 0.4f));
 		}
@@ -40,6 +44,8 @@ public class RenderHandler implements IRenderer {
 
 	@Override
 	public void onRenderGameOverlayPost(float partialTicks) {
+		if (!enableRendering) return;
+
 		ArrayList<String> txt = new ArrayList<>();
 
 		txt.add(String.format("Corner A: %s %s", stringifyPos(Selection.a), Selection.aFocused ? "(Focused)" : ""));

@@ -59,6 +59,13 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 				System.out.println("code broken yuou fuckface");
 			}
 			return true;
+		} else if (key == Hotkeys.CLEAR_SELECTION.getKeybind()) {
+			Selection.a = null;
+			Selection.b = null;
+			return true;
+		} else if (key == Hotkeys.TOGGLE_RENDERING.getKeybind()) {
+			RenderHandler.enableRendering = !RenderHandler.enableRendering;
+			return true;
 		}
 		return false;
 	}
