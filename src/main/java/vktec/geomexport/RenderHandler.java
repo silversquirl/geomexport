@@ -40,14 +40,14 @@ public class RenderHandler implements IRenderer {
 		double maxY = Math.max(pos1.getY(), pos2.getY()) - camPos.y + 1.00;
 		double maxZ = Math.max(pos1.getZ(), pos2.getZ()) - camPos.z + 1.00;
 
-		double offset = 0.002;
+		double factor = 0.999;
 
-		if (minX > 0) minX -= offset; else minX += offset;
-		if (minY > 0) minY -= offset; else minY += offset;
-		if (minZ > 0) minZ -= offset; else minZ += offset;
-		if (maxX > 0) maxX -= offset; else maxX += offset;
-		if (maxY > 0) maxY -= offset; else maxY += offset;
-		if (maxZ > 0) maxZ -= offset; else maxZ += offset;
+		minX *= factor;
+		minY *= factor;
+		minZ *= factor;
+		maxX *= factor;
+		maxY *= factor;
+		maxZ *= factor;
 
 		RenderSystem.disableTexture();
 		RenderSystem.pushMatrix();
