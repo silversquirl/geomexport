@@ -18,7 +18,7 @@ import net.minecraft.util.math.Vec3d;
 
 public class BlocksWriter implements AutoCloseable {
 	private final ObjWriter objWriter;
-	private final Direction[] directions
+	private final Direction[] directions;
 
 	public BlocksWriter(String basename) throws IOException {
 		this.objWriter = new ObjWriter(basename + ".obj");
