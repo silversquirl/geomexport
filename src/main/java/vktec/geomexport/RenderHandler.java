@@ -20,16 +20,30 @@ import java.util.ArrayList;
 public class RenderHandler implements IRenderer {
 	@Override
 	public void onRenderWorldLast(float partialTicks, MatrixStack matrices) {
-		renderBox(Selection.a, Selection.b, new Color4f(1.0f, 0.0f, 0.0f), new Color4f(0.2f, 0.7f, 0.7f, 0.4f));
-		renderBox(Selection.getFocused(),   Selection.getFocused(),   new Color4f(0.0f, 0.0f, 0.0f, 0.0f), new Color4f(1.0f, 0.0f, 0.0f, 0.4f));
-		renderBox(Selection.getUnfocused(), Selection.getUnfocused(), new Color4f(0.0f, 0.0f, 0.0f, 0.0f), new Color4f(0.0f, 1.0f, 0.0f, 0.2f));
+		if (Selection.a != null && Selection.b != null) {
+			renderBox(Selection.a, Selection.b, new Color4f(1.0f, 0.0f, 0.0f), new Color4f(0.2f, 0.7f, 0.7f, 0.4f));
+		}
+
+		if (Selection.getFocused() != null) {
+			renderBox(Selection.getFocused(), Selection.getFocused(), new Color4f(0.0f, 0.0f, 0.0f, 0.0f), new Color4f(1.0f, 0.0f, 0.0f, 0.4f));
+		}
+
+		if (Selection.getUnfocused() != null) {
+			renderBox(Selection.getUnfocused(), Selection.getUnfocused(), new Color4f(0.0f, 0.0f, 0.0f, 0.0f), new Color4f(0.0f, 1.0f, 0.0f, 0.2f));
+		}
+	}
+
+	private String stringifyPos(BlockPos pos) {
+		if (pos == null) return "(None)";
+		else return String.format("%d %d %d", pos.getX(), pos.getY(), pos.getZ());
 	}
 
 	@Override
 	public void onRenderGameOverlayPost(float partialTicks) {
 		ArrayList<String> txt = new ArrayList<>();
-		txt.add(String.format("Corner A: %d, %d, %d", Selection.a.getX(), Selection.a.getY(), Selection.a.getZ()));
-		txt.add(String.format("Corner B: %d, %d, %d", Selection.b.getX(), Selection.b.getY(), Selection.b.getZ()));
+
+		txt.add(String.format("Corner A: %s %s", stringifyPos(Selection.a), Selection.aFocused ? "(Focused)" : ""));
+		txt.add(String.format("Corner B: %s %s", stringifyPos(Selection.b), Selection.aFocused ? "" : "(Focused)"));
 		RenderUtils.renderText(10, 10, 1, 0xFFFFFFFF, 0x80000000, HudAlignment.BOTTOM_LEFT, true, true, txt);
 	}
 
