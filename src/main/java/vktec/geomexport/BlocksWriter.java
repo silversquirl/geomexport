@@ -18,9 +18,13 @@ import net.minecraft.util.math.Vec3d;
 
 public class BlocksWriter implements AutoCloseable {
 	private final ObjWriter objWriter;
+	private final Direction[] directions
 
 	public BlocksWriter(String basename) throws IOException {
 		this.objWriter = new ObjWriter(basename + ".obj");
+		directions = new Direction[Direction.values().length + 1];
+		directions[0] = null;
+		System.arraycopy(Direction.values(), 0, directions, 1, Direction.values().length);
 	}
 
 	public void close() throws IOException {
@@ -45,10 +49,6 @@ public class BlocksWriter implements AutoCloseable {
 			Vec3d relPos = new Vec3d(pos.getX(), pos.getY(), pos.getZ()).subtract(vecOrigin);
 
 			this.objWriter.beginObject(block.getBlock().getName().asString());
-
-			Direction[] directions = new Direction[Direction.values().length + 1];
-			directions[0] = null;
-			System.arraycopy(Direction.values(), 0, directions, 1, Direction.values().length);
 
 			for (Direction dir : directions) {
 				for (BakedQuad quad : model.getQuads(block, dir, random)) {
