@@ -68,7 +68,7 @@ public class BlocksWriter implements AutoCloseable {
 					}
 
 					if (dir == null) this.objWriter.writeFace(vertexIndices);
-					else this.objWriter.writeFaceNormal(dir.getId(), vertexIndices)
+					else this.objWriter.writeFaceNormal(dir.getId(), vertexIndices);
 				}
 			}
 		}
