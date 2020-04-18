@@ -34,7 +34,7 @@ public class BlocksWriter implements AutoCloseable {
 	public void writeRegion(BlockView view, BlockPos a, BlockPos b) throws IOException {
 		BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
 		Random random = new Random();
-		Map<Vec3d,Integer> vertexCache = new HashMap<>();
+		Map<String,Integer> vertexCache = new HashMap<>();
 
 		for (Direction dir : Direction.values()) {
 			this.objWriter.writeVertexNormal(new Vec3d(dir.getVector()));
@@ -58,7 +58,10 @@ public class BlocksWriter implements AutoCloseable {
 
 					for (Vec3d vertex : vertices) {
 						Vec3d relVertex = vertex.add(relPos);
-						Integer vertexIndex = vertexCache.putIfAbsent(relVertex, vertexCache.size());
+
+						String vertexStr = String.format("%f %f %f", relVertex.x, relVertex.y, relVertex.z);
+
+						Integer vertexIndex = vertexCache.putIfAbsent(vertexStr, vertexCache.size());
 						if (vertexIndex == null) {
 							this.objWriter.writeVertex(relVertex);
 							vertexIndices[i++] = vertexCache.size() - 1;
