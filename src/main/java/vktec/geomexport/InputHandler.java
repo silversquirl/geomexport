@@ -12,6 +12,7 @@ import fi.dy.masa.malilib.hotkeys.IMouseInputHandler;
 import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.util.GuiUtils;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Direction;
 import net.minecraft.client.MinecraftClient;
 import java.util.Arrays;
@@ -46,7 +47,10 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 			Selection.toggleFocus();
 			return true;
 		} else if (key == Hotkeys.MOVE_FOCUSED_CORNER.getKeybind()) {
-			Selection.setFocused(MinecraftClient.getInstance().player.getBlockPos());
+			// If you're standing on e.g. a path, you probably still want to
+			// select the block above, so offset up slightly
+			Vec3d pos = MinecraftClient.getInstance().player.getPos().add(0, 0.2, 0);
+			Selection.setFocused(new BlockPos(pos));
 			return true;
 		} else if (key == Hotkeys.WRITE_FILE.getKeybind()) {
 			try (BlocksWriter bw = new BlocksWriter("testy_file")) {
