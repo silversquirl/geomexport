@@ -1,3 +1,5 @@
+// vim: noet
+
 package vktec.geomexport;
 
 import java.io.IOException;
@@ -34,43 +36,54 @@ public class BlocksWriter implements AutoCloseable {
 			this.objWriter.writeVertexNormal(new Vec3d(dir.getVector()));
 		}
 
+		Vec3d vecOrigin = new Vec3d(a.getX(), a.getY(), a.getZ());
+
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
 			BlockState block = view.getBlockState(pos);
 			BakedModel model = models.getModel(block);
 
+			Vec3d relPos = new Vec3d(pos.getX(), pos.getY(), pos.getZ()).subtract(vecOrigin);
+
 			this.objWriter.beginObject(block.getBlock().getName().asString());
-			for (Direction dir : Direction.values()) {
+
+			Direction[] directions = new Direction[Direction.values().length + 1];
+			directions[0] = null;
+			System.arraycopy(Direction.values(), 0, directions, 1, Direction.values().length);
+
+			for (Direction dir : directions) {
 				for (BakedQuad quad : model.getQuads(block, dir, random)) {
 					Vec3d[] vertices = BlocksWriter.decodeVertices(quad.getVertexData());
 					int[] vertexIndices = new int[vertices.length];
 					int i = 0;
 
 					for (Vec3d vertex : vertices) {
-						Integer vertexIndex = vertexCache.putIfAbsent(vertex, vertexCache.size());
+						Vec3d relVertex = vertex.add(relPos);
+						Integer vertexIndex = vertexCache.putIfAbsent(relVertex, vertexCache.size());
 						if (vertexIndex == null) {
-							this.objWriter.writeVertex(vertex);
-							vertexIndices[i++] = vertexCache.size();
+							this.objWriter.writeVertex(relVertex);
+							vertexIndices[i++] = vertexCache.size() - 1;
 						} else {
 							vertexIndices[i++] = vertexIndex;
 						}
 					}
 
-					this.objWriter.writeFace(dir.getId(), vertexIndices);
+					if (dir == null) this.objWriter.writeFace(vertexIndices);
+					else this.objWriter.writeFaceNormal(dir.getId(), vertexIndices)
 				}
 			}
-
-			vertexCache.clear();
 		}
 	}
 
 	private static Vec3d[] decodeVertices(int[] vertexData) {
-		final double SCALE_FACTOR = 1/16.0;
-		Vec3d[] vertices = new Vec3d[vertexData.length/3];
+		Vec3d[] vertices = new Vec3d[vertexData.length/8];
 
 		for (int i = 0; i < vertices.length; i++) {
-			double x = vertexData[i*3 + 0] * SCALE_FACTOR;
-			double y = vertexData[i*3 + 1] * SCALE_FACTOR;
-			double z = vertexData[i*3 + 2] * SCALE_FACTOR;
+			float x = Float.intBitsToFloat(vertexData[i*8 + 0]);
+			float y = Float.intBitsToFloat(vertexData[i*8 + 1]);
+			float z = Float.intBitsToFloat(vertexData[i*8 + 2]);
+			int brightness = vertexData[i*8 + 3];
+			float u = Float.intBitsToFloat(vertexData[i*8 + 4]);
+			float v = Float.intBitsToFloat(vertexData[i*8 + 5]);
 			vertices[i] = new Vec3d(x, y, z);
 		}
 

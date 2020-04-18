@@ -1,3 +1,5 @@
+// vim: noet
+
 package vktec.geomexport;
 
 import java.io.BufferedWriter;
@@ -54,10 +56,18 @@ public class ObjWriter implements AutoCloseable {
 		this.writefln("vn %f %f %f", vertexNormal.getX(), vertexNormal.getY(), vertexNormal.getZ());
 	}
 
-	public void writeFace(int normalVertex, int... vertexIndices) throws IOException {
-		this.file.write("f ");
+	public void writeFace(int... vertexIndices) throws IOException {
+		this.file.write("f");
 		for (int idx : vertexIndices) {
-			this.writef("%d//%d", idx, normalVertex);
+			this.writef(" %d", idx + 1);
+		}
+		this.file.newLine();
+	}
+
+	public void writeFaceNormal(int normalVertex, int... vertexIndices) throws IOException {
+		this.file.write("f");
+		for (int idx : vertexIndices) {
+			this.writef(" %d//%d", idx + 1, normalVertex + 1);
 		}
 		this.file.newLine();
 	}
