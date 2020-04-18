@@ -14,8 +14,8 @@ import fi.dy.masa.malilib.util.Color4f;
 import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.util.math.MatrixStack;
 import fi.dy.masa.malilib.interfaces.IRenderer;
-
-import java.util.Arrays;
+import fi.dy.masa.malilib.config.HudAlignment;
+import java.util.ArrayList;
 
 public class RenderHandler implements IRenderer {
 	@Override
@@ -26,7 +26,12 @@ public class RenderHandler implements IRenderer {
 	}
 
 	@Override
-	public void onRenderGameOverlayPost(float partialTicks) { }
+	public void onRenderGameOverlayPost(float partialTicks) {
+		ArrayList<String> txt = new ArrayList<>();
+		txt.add(String.format("Corner A: %d, %d, %d", Selection.a.getX(), Selection.a.getY(), Selection.a.getZ()));
+		txt.add(String.format("Corner B: %d, %d, %d", Selection.b.getX(), Selection.b.getY(), Selection.b.getZ()));
+		RenderUtils.renderText(10, 10, 1, 0xFFFFFFFF, 0x80000000, HudAlignment.BOTTOM_LEFT, true, true, txt);
+	}
 
 	public static void renderBox(BlockPos pos1, BlockPos pos2, Color4f lineColor, Color4f sideColor) {
 		MinecraftClient mc = MinecraftClient.getInstance();
@@ -40,8 +45,9 @@ public class RenderHandler implements IRenderer {
 		double maxY = Math.max(pos1.getY(), pos2.getY()) - camPos.y + 1.00;
 		double maxZ = Math.max(pos1.getZ(), pos2.getZ()) - camPos.z + 1.00;
 
+		// Makes it so that when you are outside the box, blocks on the
+		// inner edge appear inside, and vice versa
 		double factor = 0.999;
-
 		minX *= factor;
 		minY *= factor;
 		minZ *= factor;
@@ -67,7 +73,7 @@ public class RenderHandler implements IRenderer {
 		BufferBuilder bufEdge = tessellator.getBuffer();
 		bufEdge.begin(GL11.GL_LINES, VertexFormats.POSITION_COLOR);
 
-		RenderSystem.lineWidth(2f);
+		RenderSystem.lineWidth(1.5f);
 		RenderUtils.drawBoxAllEdgesBatchedLines(minX, minY, minZ, maxX, maxY, maxZ, lineColor, bufEdge);
 
 		tessellator.draw();
