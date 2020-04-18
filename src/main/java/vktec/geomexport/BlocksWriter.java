@@ -35,10 +35,7 @@ public class BlocksWriter implements AutoCloseable {
 		BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
 		Random random = new Random();
 		Map<String,Integer> vertexCache = new HashMap<>();
-
-		for (Direction dir : Direction.values()) {
-			this.objWriter.writeVertexNormal(new Vec3d(dir.getVector()));
-		}
+		Map<String,Integer> normalCache = new HashMap<>();
 
 		Vec3d vecOrigin = new Vec3d(a.getX(), a.getY(), a.getZ());
 
@@ -51,6 +48,9 @@ public class BlocksWriter implements AutoCloseable {
 			boolean writtenObj = false;
 
 			for (Direction dir : directions) {
+				Vec3d normal = null;
+				if (dir != null) normal = new Vec3d(dir.getVector());
+
 				for (BakedQuad quad : model.getQuads(block, dir, random)) {
 					// Prevent writing the object if there's no quads in it
 					if (!writtenObj) {
@@ -61,6 +61,18 @@ public class BlocksWriter implements AutoCloseable {
 					Vec3d[] vertices = BlocksWriter.decodeVertices(quad.getVertexData());
 					int[] vertexIndices = new int[vertices.length];
 					int i = 0;
+
+					if (dir == null) {
+						normal = calcNormal(vertices[0], vertices[1], vertices[2], vertices[3]);
+					}
+
+					String normalStr = String.format("%f %f %f", normal.x, normal.y, normal.z);
+
+					Integer normalIndex = normalCache.putIfAbsent(normalStr, normalCache.size());
+					if (normalIndex == null) {
+						this.objWriter.writeVertexNormal(normal);
+						normalIndex = normalCache.size() - 1;
+					}
 
 					for (Vec3d vertex : vertices) {
 						Vec3d relVertex = vertex.add(relPos);
@@ -76,8 +88,7 @@ public class BlocksWriter implements AutoCloseable {
 						}
 					}
 
-					if (dir == null) this.objWriter.writeFace(vertexIndices);
-					else this.objWriter.writeFaceNormal(dir.getId(), vertexIndices);
+					this.objWriter.writeFaceNormal(normalIndex, vertexIndices);
 				}
 			}
 		}
@@ -97,5 +108,20 @@ public class BlocksWriter implements AutoCloseable {
 		}
 
 		return vertices;
+	}
+
+	private static Vec3d calcNormal(Vec3d a, Vec3d b, Vec3d c, Vec3d d) {
+		// Assuming abcd is a quad (i.e. all on one plane), we can ignore
+		// one of the coordinates and instead just find the surface normal
+		// of a triangle abc. Hence, we completely ignore d
+
+		Vec3d u = b.subtract(a);
+		Vec3d v = c.subtract(a);
+
+		double x = (u.y * v.z) - (u.z * v.y);
+		double y = (u.z * v.x) - (u.x * v.z);
+		double z = (u.x * v.y) - (u.y * v.x);
+
+		return new Vec3d(x, y, z);
 	}
 }
