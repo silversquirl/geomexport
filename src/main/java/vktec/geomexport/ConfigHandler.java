@@ -1,0 +1,45 @@
+// vim: noet
+
+package vktec.geomexport;
+
+import fi.dy.masa.malilib.config.IConfigHandler;
+import fi.dy.masa.malilib.config.ConfigUtils;
+import fi.dy.masa.malilib.util.FileUtils;
+import fi.dy.masa.malilib.util.JsonUtils;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import java.io.File;
+import java.util.Arrays;
+
+public class ConfigHandler implements IConfigHandler {
+	private static final String CONFIG_FILE = GeomExport.MOD_ID + ".json";
+
+	@Override
+	public void load() {
+		File configFile = new File(FileUtils.getConfigDirectory(), CONFIG_FILE);
+
+		if (configFile.exists() && configFile.isFile() && configFile.canRead()) {
+			JsonElement elem = JsonUtils.parseJsonFile(configFile);
+			if (elem != null && elem.isJsonObject()) {
+				JsonObject root = elem.getAsJsonObject();
+
+				ConfigUtils.readConfigBase(root, "hotkeys", Arrays.asList(Hotkeys.HOTKEYS));
+				ConfigUtils.readConfigBase(root, "colors", Arrays.asList(Colors.COLORS));
+			}
+		}
+	}
+
+	@Override
+	public void save() {
+		File dir = FileUtils.getConfigDirectory();
+
+		if ((dir.exists() && dir.isDirectory()) || dir.mkdirs()) {
+			JsonObject root = new JsonObject();
+
+			ConfigUtils.writeConfigBase(root, "hotkeys", Arrays.asList(Hotkeys.HOTKEYS));
+			ConfigUtils.writeConfigBase(root, "colors", Arrays.asList(Colors.COLORS));
+
+			JsonUtils.writeJsonToFile(root, new File(dir, CONFIG_FILE));
+		}
+	}
+}

@@ -5,6 +5,7 @@ package vktec.geomexport;
 import net.fabricmc.api.ModInitializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import fi.dy.masa.malilib.config.ConfigManager;
 import fi.dy.masa.malilib.event.InitializationHandler;
 import fi.dy.masa.malilib.interfaces.IInitializationHandler;
 import fi.dy.masa.malilib.event.InputEventHandler;
@@ -25,6 +26,8 @@ public class GeomExport implements ModInitializer {
 	public class InitHandler implements IInitializationHandler {
 		@Override
 		public void registerModHandlers() {
+			ConfigManager.getInstance().registerConfigHandler(MOD_ID, new ConfigHandler());
+
 			InputEventHandler.getKeybindManager().registerKeybindProvider(InputHandler.getInstance());
 			InputEventHandler.getInputManager().registerMouseInputHandler(InputHandler.getInstance());
 
