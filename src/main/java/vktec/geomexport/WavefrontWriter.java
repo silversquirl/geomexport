@@ -6,13 +6,13 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.FileSystems;
+import java.nio.file.Path;
 
 public abstract class WavefrontWriter implements AutoCloseable {
 	protected final BufferedWriter file;
 
-	public WavefrontWriter(String path) throws IOException {
-		this.file = Files.newBufferedWriter(FileSystems.getDefault().getPath(path), Charset.forName("utf-8"));
+	public WavefrontWriter(Path path) throws IOException {
+		this.file = Files.newBufferedWriter(path, Charset.forName("utf-8"));
 	}
 
 	public void close() throws IOException {
