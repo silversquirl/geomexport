@@ -30,7 +30,7 @@ class WidgetExportBrowser extends WidgetFileBrowserBase implements ISelectionLis
 
 	public WidgetExportBrowser(int x, int y, int width, int height, GuiExport parent, String context, ISelectionListener<DirectoryEntry> selectionListener) {
 		super(x, y, width, height, DirectoryCache.INSTANCE, context, getDefaultBaseDir(), selectionListener, Icons.DUMMY);
-		this.title = StringUtils.translate("geomexport.gui.title.browser");
+		this.title = "";
 		this.parent = parent;
 	}
 

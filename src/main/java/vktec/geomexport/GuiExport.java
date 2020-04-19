@@ -44,9 +44,9 @@ public class GuiExport extends GuiListBase<DirectoryEntry, WidgetDirectoryEntry,
 		this.addButton(this.exportBtn, this);
 
 		if (Selection.a == null || Selection.b == null) {
-			this.infoString = "You must create a selection before exporting it.";
+			this.infoString = StringUtils.translate("geomexport.gui.text.create_selection");
 		} else {
-			this.infoString = "Navigate to a folder to export to.";
+			this.infoString = StringUtils.translate("geomexport.gui.text.navigate_folder");
 		}
 
 		onDirChange(this.getListWidget().getCurrentDirectory());
@@ -58,7 +58,7 @@ public class GuiExport extends GuiListBase<DirectoryEntry, WidgetDirectoryEntry,
 
 		// Sanity checks
 		if (Selection.a == null || Selection.b == null) {
-			this.infoString = "You must create a selection before exporting it.";
+			this.infoString = StringUtils.translate("geomexport.gui.text.create_selection");
 			this.exportBtn.setEnabled(false);
 			return;
 		}

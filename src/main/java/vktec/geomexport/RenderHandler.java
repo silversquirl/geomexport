@@ -15,6 +15,7 @@ import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.util.math.MatrixStack;
 import fi.dy.masa.malilib.interfaces.IRenderer;
 import fi.dy.masa.malilib.config.HudAlignment;
+import fi.dy.masa.malilib.util.StringUtils;
 import java.util.ArrayList;
 
 public class RenderHandler implements IRenderer {
@@ -38,7 +39,7 @@ public class RenderHandler implements IRenderer {
 	}
 
 	private String stringifyPos(BlockPos pos) {
-		if (pos == null) return "(None)";
+		if (pos == null) return String.format("(%s)", StringUtils.translate("geomexport.text.coord_none"));
 		else return String.format("%d %d %d", pos.getX(), pos.getY(), pos.getZ());
 	}
 
@@ -48,8 +49,10 @@ public class RenderHandler implements IRenderer {
 
 		ArrayList<String> txt = new ArrayList<>();
 
-		txt.add(String.format("Corner A: %s %s", stringifyPos(Selection.a), Selection.aFocused ? "(Focused)" : ""));
-		txt.add(String.format("Corner B: %s %s", stringifyPos(Selection.b), Selection.aFocused ? "" : "(Focused)"));
+		String focused = String.format("(%s)", StringUtils.translate("geomexport.text.focused"));
+
+		txt.add(String.format("%s: %s %s", StringUtils.translate("geomexport.text.corner_a"), stringifyPos(Selection.a), Selection.aFocused ? focused : ""));
+		txt.add(String.format("%s: %s %s", StringUtils.translate("geomexport.text.corner_b"), stringifyPos(Selection.b), Selection.aFocused ? "" : focused));
 		RenderUtils.renderText(10, 10, 1, 0xFFFFFFFF, 0x80000000, HudAlignment.BOTTOM_LEFT, true, true, txt);
 	}
 

@@ -1,0 +1,20 @@
+{
+	"geomexport.gui.title.config": "GeomExport Configuration",
+	"geomexport.gui.title.export": "Export Selection",
+	"geomexport.gui.title.confirm_export": "Confirm Export",
+	"geomexport.gui.button.config_generic": "Generic",
+	"geomexport.gui.button.config_hotkeys": "Hotkeys",
+	"geomexport.gui.button.config_colors": "Colors",
+	"geomexport.gui.button.export": "Export",
+	"geomexport.gui.text.create_selection": "You must create a selection before exporting it.",
+	"geomexport.gui.text.navigate_folder": "Navigate to a folder to export to.",
+  "geomexport.gui.text.confirm_export": "This may overwrite any files in the selected directory. Are you sure you want to proceed?",
+	"geomexport.message.export_start": "Started exporting selection...",
+	"geomexport.message.export_success": "Successfully exported selection.",
+	"geomexport.message.export_failure": "Failed to export selection. More information can be found the the logfile.",
+	"geomexport.text.corner_a": "Corner A",
+	"geomexport.text.corner_b": "Corner B",
+	"geomexport.text.focused": "Focused",
+	"geomexport.text.coord_none": "None",
+	"geomexport.hotkeys.category.all": "All hotkeys"
+}
