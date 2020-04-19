@@ -37,6 +37,7 @@ public class GuiConfig extends GuiConfigsBase {
 			@Override
 			public void actionPerformedWithButton(ButtonBase button, int mouseButton) {
 				GuiConfig.this.tab = tab;
+				GuiConfig.this.initGui();
 			}
 		});
 		return b.getWidth() + 2;
@@ -49,14 +50,14 @@ public class GuiConfig extends GuiConfigsBase {
 		if (this.tab == ConfigTab.HOTKEYS) {
 			configs = Arrays.asList(Hotkeys.HOTKEYS);
 		} else if (this.tab == ConfigTab.COLORS) {
-			configs = null; // TODO FIXME
+			configs = Arrays.asList(Colors.COLORS);
 		}
 
 		return ConfigOptionWrapper.createFor(configs);
 	}
 
 	public enum ConfigTab {
-		HOTKEYS("geomexport.gui.button.config_hotkets"),
+		HOTKEYS("geomexport.gui.button.config_hotkeys"),
 		COLORS("geomexport.gui.button.config_colors");
 
 		private final String translationKey;

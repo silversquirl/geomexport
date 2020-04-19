@@ -25,15 +25,15 @@ public class RenderHandler implements IRenderer {
 		if (!enableRendering) return;
 
 		if (Selection.a != null && Selection.b != null) {
-			renderBox(Selection.a, Selection.b, new Color4f(1.0f, 0.0f, 0.0f), new Color4f(0.2f, 0.7f, 0.7f, 0.4f));
+			renderBox(Selection.a, Selection.b, Colors.SELECTION_BOX_EDGE_COLOR.getColor(), Colors.SELECTION_BOX_SIDE_COLOR.getColor());
 		}
 
 		if (Selection.getFocused() != null) {
-			renderBox(Selection.getFocused(), Selection.getFocused(), new Color4f(0.0f, 0.0f, 0.0f, 0.0f), new Color4f(1.0f, 0.0f, 0.0f, 0.4f));
+			renderBox(Selection.getFocused(), Selection.getFocused(), new Color4f(0.0f, 0.0f, 0.0f, 0.0f), Colors.COLOR_CORNER_FOCUSED.getColor());
 		}
 
 		if (Selection.getUnfocused() != null) {
-			renderBox(Selection.getUnfocused(), Selection.getUnfocused(), new Color4f(0.0f, 0.0f, 0.0f, 0.0f), new Color4f(0.0f, 1.0f, 0.0f, 0.2f));
+			renderBox(Selection.getUnfocused(), Selection.getUnfocused(), new Color4f(0.0f, 0.0f, 0.0f, 0.0f), Colors.COLOR_CORNER_UNFOCUSED.getColor());
 		}
 	}
 
