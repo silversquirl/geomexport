@@ -3,6 +3,8 @@
 package vktec.geomexport;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.Random;
 import java.util.Map;
 import java.util.HashMap;
@@ -11,17 +13,27 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.world.BlockView;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import vktec.geomexport.duck.SpriteDuck;
 
 public class BlocksWriter implements AutoCloseable {
+	private final MtlWriter mtlWriter;
 	private final ObjWriter objWriter;
+	private final Path textureDir;
 	private final Direction[] directions;
 
 	public BlocksWriter(String basename) throws IOException {
+		this.mtlWriter = new MtlWriter(basename + ".mtl");
 		this.objWriter = new ObjWriter(basename + ".obj");
+		this.objWriter.addMtl(basename + ".mtl");
+		this.textureDir = FileSystems.getDefault().getPath(basename + "_textures");
+
 		directions = new Direction[Direction.values().length + 1];
 		directions[0] = null;
 		System.arraycopy(Direction.values(), 0, directions, 1, Direction.values().length);
@@ -34,8 +46,10 @@ public class BlocksWriter implements AutoCloseable {
 	public void writeRegion(BlockView view, BlockPos a, BlockPos b) throws IOException {
 		BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
 		Random random = new Random();
+
 		Map<String,Integer> vertexCache = new HashMap<>();
 		Map<String,Integer> normalCache = new HashMap<>();
+		Map<Identifier,String> materialCache = new HashMap<>();
 
 		Vec3d vecOrigin = new Vec3d(a.getX(), a.getY(), a.getZ());
 
@@ -58,6 +72,23 @@ public class BlocksWriter implements AutoCloseable {
 						writtenObj = true;
 					}
 
+					// Material data
+					Sprite sprite = model.getSprite();
+					String materialName = materialCache.get(sprite.getId());
+					if (materialName == null) {
+						materialName = sprite.getId().toString();
+
+						NativeImage texture = ((SpriteDuck)sprite).getImages()[0];
+						Path texturePath = this.textureDir.resolve(materialName + ".png");
+						texture.writeFile(texturePath);
+
+						this.mtlWriter.beginMaterial(materialName);
+						this.mtlWriter.writeAmbientTexture(texturePath.toString());
+
+						materialCache.put(sprite.getId(), materialName);
+					}
+
+					// Vertex data
 					Vec3d[] vertices = BlocksWriter.decodeVertices(quad.getVertexData());
 					int[] vertexIndices = new int[vertices.length];
 					int i = 0;
@@ -88,6 +119,7 @@ public class BlocksWriter implements AutoCloseable {
 						}
 					}
 
+					this.objWriter.useMtl(materialName);
 					this.objWriter.writeFaceNormal(normalIndex, vertexIndices);
 				}
 			}

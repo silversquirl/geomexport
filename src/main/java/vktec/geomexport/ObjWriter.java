@@ -2,43 +2,11 @@
 
 package vktec.geomexport;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.FileSystems;
 import net.minecraft.util.math.Vec3d;
 
-public class ObjWriter implements AutoCloseable {
-	private final BufferedWriter file;
-
-	public ObjWriter(String path) throws IOException {
-		this.file = Files.newBufferedWriter(FileSystems.getDefault().getPath(path), Charset.forName("utf-8"));
-	}
-
-	public void close() throws IOException {
-		this.file.close();
-	}
-
-	private void write(String... fields) throws IOException {
-		boolean first = true;
-		for (String field : fields) {
-			if (first) first = false;
-			else this.file.write(' ');
-
-			this.file.write(field);
-		}
-		this.file.newLine();
-	}
-
-	private void writef(String format, Object... values) throws IOException {
-		this.file.write(String.format(format, values));
-	}
-
-	private void writefln(String format, Object... values) throws IOException {
-		this.writef(format, values);
-		this.file.newLine();
-	}
+public class ObjWriter extends WavefrontWriter {
+	public ObjWriter(String path) throws IOException { super(path); }
 
 	public void beginObject(String name) throws IOException {
 		this.write("o", name);
@@ -70,5 +38,13 @@ public class ObjWriter implements AutoCloseable {
 			this.writef(" %d//%d", idx + 1, normalVertex + 1);
 		}
 		this.file.newLine();
+	}
+
+	public void addMtl(String filename) throws IOException {
+		this.write("mtllib", filename);
+	}
+
+	public void useMtl(String materialName) throws IOException {
+		this.write("usemtl", materialName);
 	}
 }
