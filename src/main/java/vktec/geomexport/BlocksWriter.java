@@ -26,17 +26,18 @@ public class BlocksWriter implements AutoCloseable {
 	private final MtlWriter mtlWriter;
 	private final ObjWriter objWriter;
 	private final Path textureDir;
-	private final Direction[] directions;
+
+	private static final Direction[] directions = new Direction[Direction.values().length + 1];
+	static {
+		directions[0] = null;
+		System.arraycopy(Direction.values(), 0, directions, 1, Direction.values().length);
+	}
 
 	public BlocksWriter(String basename) throws IOException {
 		this.mtlWriter = new MtlWriter(basename + ".mtl");
 		this.objWriter = new ObjWriter(basename + ".obj");
 		this.objWriter.addMtl(basename + ".mtl");
 		this.textureDir = FileSystems.getDefault().getPath(basename + "_textures");
-
-		directions = new Direction[Direction.values().length + 1];
-		directions[0] = null;
-		System.arraycopy(Direction.values(), 0, directions, 1, Direction.values().length);
 	}
 
 	public void close() throws IOException {
@@ -61,7 +62,7 @@ public class BlocksWriter implements AutoCloseable {
 
 			boolean writtenObj = false;
 
-			for (Direction dir : directions) {
+			for (Direction dir : BlocksWriter.directions) {
 				Vec3d normal = null;
 				if (dir != null) normal = new Vec3d(dir.getVector());
 
