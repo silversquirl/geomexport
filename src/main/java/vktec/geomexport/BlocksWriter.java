@@ -3,6 +3,8 @@
 package vktec.geomexport;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.Random;
 import java.util.Map;
 import java.util.HashMap;
@@ -11,33 +13,60 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.world.BlockView;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
+import vktec.geomexport.duck.SpriteDuck;
 
 public class BlocksWriter implements AutoCloseable {
+	private final Path dir;
+	private final Path textureDir;
+	private final MtlWriter mtlWriter;
 	private final ObjWriter objWriter;
-	private final Direction[] directions;
 
-	public BlocksWriter(String basename) throws IOException {
-		this.objWriter = new ObjWriter(basename + ".obj");
-		directions = new Direction[Direction.values().length + 1];
+	private static final Direction[] directions = new Direction[Direction.values().length + 1];
+	static {
 		directions[0] = null;
 		System.arraycopy(Direction.values(), 0, directions, 1, Direction.values().length);
 	}
 
+	public BlocksWriter(Path dir) throws IOException {
+		this.dir = dir;
+		this.textureDir = dir.resolve("textures");
+		this.textureDir.toFile().mkdirs();
+
+		Path mtlPath = dir.resolve("material.mtl");
+		this.mtlWriter = new MtlWriter(mtlPath);
+
+		this.objWriter = new ObjWriter(dir.resolve("model.obj"));
+		this.objWriter.addMtl(dir.relativize(mtlPath).toString());
+	}
+
 	public void close() throws IOException {
+		this.mtlWriter.close();
 		this.objWriter.close();
 	}
 
 	public void writeRegion(BlockView view, BlockPos a, BlockPos b) throws IOException {
 		BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
 		Random random = new Random();
+
 		Map<String,Integer> vertexCache = new HashMap<>();
 		Map<String,Integer> normalCache = new HashMap<>();
+		Map<String,Integer> uvCache = new HashMap<>();
+		Map<Identifier,String> materialCache = new HashMap<>();
 
 		Vec3d vecOrigin = new Vec3d(a.getX(), a.getY(), a.getZ());
+
+		Vec3d[] vertices = new Vec3d[4];
+		Vec2f[] uvs = new Vec2f[vertices.length];
+		int[] vertexIndices = new int[vertices.length];
+		int[] uvIndices = new int[vertices.length];
 
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
 			BlockState block = view.getBlockState(pos);
@@ -47,7 +76,7 @@ public class BlocksWriter implements AutoCloseable {
 
 			boolean writtenObj = false;
 
-			for (Direction dir : directions) {
+			for (Direction dir : BlocksWriter.directions) {
 				Vec3d normal = null;
 				if (dir != null) normal = new Vec3d(dir.getVector());
 
@@ -58,9 +87,25 @@ public class BlocksWriter implements AutoCloseable {
 						writtenObj = true;
 					}
 
-					Vec3d[] vertices = BlocksWriter.decodeVertices(quad.getVertexData());
-					int[] vertexIndices = new int[vertices.length];
-					int i = 0;
+					// Material data
+					Sprite sprite = model.getSprite();
+					String materialName = materialCache.get(sprite.getId());
+					if (materialName == null) {
+						materialName = sprite.getId().toString();
+
+						NativeImage texture = ((SpriteDuck)sprite).getImages()[0];
+						Path texturePath = this.textureDir.resolve(materialName + ".png");
+						texturePath.getParent().toFile().mkdirs();
+						texture.writeFile(texturePath);
+
+						this.mtlWriter.beginMaterial(materialName);
+						this.mtlWriter.writeDiffuseTexture(this.dir.relativize(texturePath).toString());
+
+						materialCache.put(sprite.getId(), materialName);
+					}
+
+					// Vertex data
+					BlocksWriter.decodeVertices(vertices, uvs, quad.getVertexData(), sprite);
 
 					if (dir == null) {
 						normal = calcNormal(vertices[0], vertices[1], vertices[2], vertices[3]);
@@ -74,6 +119,7 @@ public class BlocksWriter implements AutoCloseable {
 						normalIndex = normalCache.size() - 1;
 					}
 
+					int i = 0;
 					for (Vec3d vertex : vertices) {
 						Vec3d relVertex = vertex.add(relPos);
 
@@ -82,32 +128,49 @@ public class BlocksWriter implements AutoCloseable {
 						Integer vertexIndex = vertexCache.putIfAbsent(vertexStr, vertexCache.size());
 						if (vertexIndex == null) {
 							this.objWriter.writeVertex(relVertex);
-							vertexIndices[i++] = vertexCache.size() - 1;
+							vertexIndices[i] = vertexCache.size() - 1;
 						} else {
-							vertexIndices[i++] = vertexIndex;
+							vertexIndices[i] = vertexIndex;
 						}
+						i++;
 					}
 
-					this.objWriter.writeFaceNormal(normalIndex, vertexIndices);
+					i = 0;
+					for (Vec2f uv : uvs) {
+						String uvStr = String.format("%f %f", uv.x, uv.y);
+
+						Integer uvIndex = uvCache.putIfAbsent(uvStr, uvCache.size());
+						if (uvIndex == null) {
+							this.objWriter.writeTextureCoord(uv);
+							uvIndices[i] = uvCache.size() - 1;
+						} else {
+							uvIndices[i] = uvIndex;
+						}
+						i++;
+					}
+
+					this.objWriter.useMtl(materialName);
+					this.objWriter.writeFace(vertexIndices, uvIndices, normalIndex);
 				}
 			}
 		}
 	}
 
-	private static Vec3d[] decodeVertices(int[] vertexData) {
-		Vec3d[] vertices = new Vec3d[vertexData.length/8];
-
+	private static void decodeVertices(Vec3d[] vertices, Vec2f[] uvs, int[] vertexData, Sprite sprite) {
 		for (int i = 0; i < vertices.length; i++) {
 			float x = Float.intBitsToFloat(vertexData[i*8 + 0]);
 			float y = Float.intBitsToFloat(vertexData[i*8 + 1]);
 			float z = Float.intBitsToFloat(vertexData[i*8 + 2]);
-			int brightness = vertexData[i*8 + 3];
+			vertices[i] = new Vec3d(x, y, z);
+
 			float u = Float.intBitsToFloat(vertexData[i*8 + 4]);
 			float v = Float.intBitsToFloat(vertexData[i*8 + 5]);
-			vertices[i] = new Vec3d(x, y, z);
+			float uDiff = sprite.getMaxU() - sprite.getMinU();
+			float vDiff = sprite.getMaxV() - sprite.getMinV();
+			u = (u - sprite.getMinU()) / uDiff;
+			v = (v - sprite.getMinV()) / vDiff;
+			uvs[i] = new Vec2f(u, v);
 		}
-
-		return vertices;
 	}
 
 	private static Vec3d calcNormal(Vec3d a, Vec3d b, Vec3d c, Vec3d d) {

@@ -18,6 +18,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.client.MinecraftClient;
 import java.util.Arrays;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 
 public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotkeyCallback {
 	private static final InputHandler INSTANCE = new InputHandler();
@@ -54,10 +55,11 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 			Selection.setFocused(new BlockPos(pos));
 			return true;
 		} else if (key == Hotkeys.WRITE_FILE.getKeybind()) {
-			try (BlocksWriter bw = new BlocksWriter("testy_file")) {
+			try (BlocksWriter bw = new BlocksWriter(FileSystems.getDefault().getPath("testy_file"))) {
 				bw.writeRegion(MinecraftClient.getInstance().world, Selection.a, Selection.b);
 			} catch (IOException e) {
 				System.out.println("code broken yuou fuckface");
+				e.printStackTrace();
 			}
 			return true;
 		} else if (key == Hotkeys.CLEAR_SELECTION.getKeybind()) {
