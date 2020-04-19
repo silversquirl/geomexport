@@ -15,7 +15,7 @@ public class Hotkeys {
 	public static final ConfigHotkey OPEN_CONFIG           = new ConfigHotkey("openConfig",          "G,S", "Opens the config menu");
 	public static final ConfigHotkey WRITE_FILE            = new ConfigHotkey("writeFile",           "G,W", "TEMPORARY: Writes the area to an obj file");
 
-	public static final ConfigHotkey[] hotkeys = {
+	public static final ConfigHotkey[] HOTKEYS = {
 		SELECTION_GROWTH_MOD,
 		TOGGLE_FOCUSED_CORNER,
 		MOVE_FOCUSED_CORNER,

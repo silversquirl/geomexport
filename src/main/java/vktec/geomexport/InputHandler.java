@@ -25,21 +25,21 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 	public static InputHandler getInstance() { return INSTANCE; }
 
 	private InputHandler() {
-		for (ConfigHotkey hk : Hotkeys.hotkeys) {
+		for (ConfigHotkey hk : Hotkeys.HOTKEYS) {
 			hk.getKeybind().setCallback(this);
 		}
 	}
 
 	@Override
 	public void addKeysToMap(IKeybindManager manager) {
-		for (ConfigHotkey hk : Hotkeys.hotkeys) {
+		for (ConfigHotkey hk : Hotkeys.HOTKEYS) {
 			manager.addKeybindToMap(hk.getKeybind());
 		}
 	}
 
 	@Override
 	public void addHotkeys(IKeybindManager manager) {
-		manager.addHotkeysForCategory("geomexport", "geomexport.hotkeys.category.all", Arrays.asList(Hotkeys.hotkeys));
+		manager.addHotkeysForCategory("geomexport", "geomexport.hotkeys.category.all", Arrays.asList(Hotkeys.HOTKEYS));
 	}
 
 	@Override
@@ -68,7 +68,7 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 			RenderHandler.enableRendering = !RenderHandler.enableRendering;
 			return true;
 		} else if (key == Hotkeys.OPEN_CONFIG.getKeybind()) {
-			GuiBase.openGui(new GuiConfig());
+			GuiBase.openGui(new GuiConfig(GuiConfig.ConfigTab.HOTKEYS));
 			return true;
 		}
 		return false;

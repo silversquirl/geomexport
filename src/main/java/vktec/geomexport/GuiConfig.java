@@ -47,7 +47,7 @@ public class GuiConfig extends GuiConfigsBase {
 		List<? extends IConfigBase> configs = null;
 
 		if (this.tab == ConfigTab.HOTKEYS) {
-			configs = Arrays.asList(Hotkeys.hotkeys);
+			configs = Arrays.asList(Hotkeys.HOTKEYS);
 		} else if (this.tab == ConfigTab.COLORS) {
 			configs = null; // TODO FIXME
 		}
