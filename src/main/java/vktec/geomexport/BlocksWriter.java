@@ -26,6 +26,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import vktec.geomexport.duck.BakedQuadDuck;
 import vktec.geomexport.duck.SpriteDuck;
+import net.minecraft.block.MaterialColor;
 
 public class BlocksWriter implements AutoCloseable {
 	private final Path dir;
@@ -76,7 +77,11 @@ public class BlocksWriter implements AutoCloseable {
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
 			BlockState block = world.getBlockState(pos);
 			BakedModel model = models.getModel(block);
-			int biomeTintColor = colorMap.getColor(block, world, pos);
+			int biomeTintColor = colorMap.getColor(block, world, pos, 0);
+			if (biomeTintColor == -1) {
+				MaterialColor c = block.getTopMaterialColor(world, pos);
+				biomeTintColor = c != null ? c.color : -1;
+			}
 
 			Vec3d relPos = new Vec3d(pos.getX(), pos.getY(), pos.getZ()).subtract(vecOrigin);
 
@@ -96,7 +101,7 @@ public class BlocksWriter implements AutoCloseable {
 					// Material data
 					Sprite sprite = ((BakedQuadDuck)quad).getSprite();
 					String materialName = sprite.getId().toString();
-					if (quad.hasColor()) {
+					if (quad.hasColor() && biomeTintColor != -1) {
 						materialName += String.format("#%X", biomeTintColor);
 					}
 
