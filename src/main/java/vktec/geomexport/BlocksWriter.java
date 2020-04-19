@@ -5,22 +5,26 @@ package vktec.geomexport;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.util.Random;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.world.BlockView;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import vktec.geomexport.duck.BakedQuadDuck;
 import vktec.geomexport.duck.SpriteDuck;
 
 public class BlocksWriter implements AutoCloseable {
@@ -52,14 +56,15 @@ public class BlocksWriter implements AutoCloseable {
 		this.objWriter.close();
 	}
 
-	public void writeRegion(BlockView view, BlockPos a, BlockPos b) throws IOException {
+	public void writeRegion(World world, BlockPos a, BlockPos b) throws IOException {
 		BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
+		BlockColors colorMap = MinecraftClient.getInstance().getBlockColorMap();
 		Random random = new Random();
 
 		Map<String,Integer> vertexCache = new HashMap<>();
 		Map<String,Integer> normalCache = new HashMap<>();
 		Map<String,Integer> uvCache = new HashMap<>();
-		Map<Identifier,String> materialCache = new HashMap<>();
+		Set<String> materialCache = new HashSet<>();
 
 		Vec3d vecOrigin = new Vec3d(a.getX(), a.getY(), a.getZ());
 
@@ -69,8 +74,9 @@ public class BlocksWriter implements AutoCloseable {
 		int[] uvIndices = new int[vertices.length];
 
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
-			BlockState block = view.getBlockState(pos);
+			BlockState block = world.getBlockState(pos);
 			BakedModel model = models.getModel(block);
+			int biomeTintColor = colorMap.getColor(block, world, pos);
 
 			Vec3d relPos = new Vec3d(pos.getX(), pos.getY(), pos.getZ()).subtract(vecOrigin);
 
@@ -88,20 +94,30 @@ public class BlocksWriter implements AutoCloseable {
 					}
 
 					// Material data
-					Sprite sprite = model.getSprite();
-					String materialName = materialCache.get(sprite.getId());
-					if (materialName == null) {
-						materialName = sprite.getId().toString();
+					Sprite sprite = ((BakedQuadDuck)quad).getSprite();
+					String materialName = sprite.getId().toString();
+					if (quad.hasColor()) {
+						materialName += String.format("#%X", biomeTintColor);
+					}
 
+					if (!materialCache.contains(materialName)) {
+						// Write texture to file
 						NativeImage texture = ((SpriteDuck)sprite).getImages()[0];
 						Path texturePath = this.textureDir.resolve(materialName + ".png");
 						texturePath.getParent().toFile().mkdirs();
+						if (quad.hasColor()) {
+							texture = ImageMixer.tintImage(texture, biomeTintColor);
+						}
 						texture.writeFile(texturePath);
 
+						// Generate MTL material
 						this.mtlWriter.beginMaterial(materialName);
+						/*if (quad.hasColor()) {
+							this.mtlWriter.writeDiffuseColor(biomeTintColor);
+						}*/
 						this.mtlWriter.writeDiffuseTexture(this.dir.relativize(texturePath).toString());
 
-						materialCache.put(sprite.getId(), materialName);
+						materialCache.add(materialName);
 					}
 
 					// Vertex data
@@ -169,7 +185,7 @@ public class BlocksWriter implements AutoCloseable {
 			float vDiff = sprite.getMaxV() - sprite.getMinV();
 			u = (u - sprite.getMinU()) / uDiff;
 			v = (v - sprite.getMinV()) / vDiff;
-			uvs[i] = new Vec2f(u, v);
+			uvs[i] = new Vec2f(u, 1-v);
 		}
 	}
 
