@@ -9,6 +9,7 @@ import fi.dy.masa.malilib.hotkeys.IKeybind;
 import fi.dy.masa.malilib.hotkeys.IKeybindProvider;
 import fi.dy.masa.malilib.hotkeys.IKeybindManager;
 import fi.dy.masa.malilib.hotkeys.IMouseInputHandler;
+import fi.dy.masa.malilib.hotkeys.IKeyboardInputHandler;
 import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.util.GuiUtils;
 import fi.dy.masa.malilib.gui.GuiBase;
@@ -16,14 +17,19 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Direction;
 import net.minecraft.client.MinecraftClient;
-import java.util.Arrays;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import com.google.common.collect.ImmutableList;
 
-public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotkeyCallback {
+public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotkeyCallback, IKeyboardInputHandler {
 	private static final InputHandler INSTANCE = new InputHandler();
 
 	public static InputHandler getInstance() { return INSTANCE; }
+
+	private static final Box FULL_BLOCK_BOUNDS = new net.minecraft.util.math.Box(0, 0, 0, 1, 1, 1);
 
 	private InputHandler() {
 		for (ConfigHotkey hk : Hotkeys.HOTKEYS) {
@@ -40,7 +46,7 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 
 	@Override
 	public void addHotkeys(IKeybindManager manager) {
-		manager.addHotkeysForCategory("geomexport", "geomexport.hotkeys.category.all", Arrays.asList(Hotkeys.HOTKEYS));
+		manager.addHotkeysForCategory("geomexport", "geomexport.hotkeys.category.all", Hotkeys.HOTKEYS);
 	}
 
 	@Override
@@ -62,7 +68,7 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 			RenderHandler.enableRendering = !RenderHandler.enableRendering;
 			return true;
 		} else if (key == Hotkeys.OPEN_CONFIG.getKeybind()) {
-			GuiBase.openGui(new GuiConfig(GuiConfig.ConfigTab.HOTKEYS));
+			GuiBase.openGui(new GuiConfig(GuiConfig.ConfigTab.GENERIC));
 			return true;
 		} else if (key == Hotkeys.EXPORT_SELECTION.getKeybind()) {
 			GuiBase.openGui(new GuiExport());
@@ -71,8 +77,57 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 		return false;
 	}
 
+	private boolean tryPickBlockFocus(MinecraftClient mc) {
+		if (!ConfigHandler.Generic.ENABLE_PICK_BLOCK_FOCUS.getBooleanValue()) return false;
+
+		int range = ConfigHandler.Generic.PICK_BLOCK_FOCUS_RANGE.getIntegerValue();
+		Vec3d cam = mc.player.getCameraPosVec(1f);
+		Vec3d disp = mc.player.getRotationVec(1f).multiply(range);
+
+		BlockHitResult hit = Box.rayTrace(ImmutableList.of(FULL_BLOCK_BOUNDS), cam, cam.add(disp), Selection.a);
+		if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
+			Selection.aFocused = true;
+			return true;
+		}
+
+		hit = Box.rayTrace(ImmutableList.of(FULL_BLOCK_BOUNDS), cam, cam.add(disp), Selection.b);
+		if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
+			Selection.aFocused = false;
+			return true;
+		}
+
+		return false;
+	}
+
 	@Override
 	public boolean onMouseClick(int mouseX, int mouseY, int eventButton, boolean eventButtonState) {
+		MinecraftClient mc = MinecraftClient.getInstance();
+
+		if (GuiUtils.getCurrentScreen() != null) return false;
+		if (mc.world == null) return false;
+		if (mc.player == null) return false;
+
+		if (eventButtonState &&
+				mc.options.keyPickItem.matchesMouse(eventButton)) {
+			return tryPickBlockFocus(mc);
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean onKeyInput(int keyCode, int scanCode, int modifiers, boolean eventKeyState) {
+		MinecraftClient mc = MinecraftClient.getInstance();
+
+		if (GuiUtils.getCurrentScreen() != null) return false;
+		if (mc.world == null) return false;
+		if (mc.player == null) return false;
+
+		if (eventKeyState &&
+				mc.options.keyPickItem.matchesKey(keyCode, scanCode)) {
+			return tryPickBlockFocus(mc);
+		}
+
 		return false;
 	}
 

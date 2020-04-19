@@ -30,6 +30,7 @@ public class GeomExport implements ModInitializer {
 
 			InputEventHandler.getKeybindManager().registerKeybindProvider(InputHandler.getInstance());
 			InputEventHandler.getInputManager().registerMouseInputHandler(InputHandler.getInstance());
+			InputEventHandler.getInputManager().registerKeyboardInputHandler(InputHandler.getInstance());
 
 			IRenderer renderer = new RenderHandler();
 			RenderEventHandler.getInstance().registerGameOverlayRenderer(renderer);

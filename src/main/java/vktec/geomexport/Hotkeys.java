@@ -4,6 +4,7 @@ package vktec.geomexport;
 
 import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.hotkeys.KeybindSettings;
+import com.google.common.collect.ImmutableList;
 
 public class Hotkeys {
 	public static final ConfigHotkey SELECTION_GROWTH_MOD  = new ConfigHotkey("selectionGrowthMod", "LEFT_ALT", KeybindSettings.MODIFIER_INGAME,   "When held, uses the scroll wheel to move the focused corner of the selection");
@@ -15,7 +16,7 @@ public class Hotkeys {
 	public static final ConfigHotkey TOGGLE_RENDERING      = new ConfigHotkey("toggleRendering",     "G,R", "Toggles all HUD and in-world rendering");
 	public static final ConfigHotkey OPEN_CONFIG           = new ConfigHotkey("openConfig",          "G,C", "Opens the config menu");
 
-	public static final ConfigHotkey[] HOTKEYS = {
+	public static final ImmutableList<ConfigHotkey> HOTKEYS = ImmutableList.of(
 		SELECTION_GROWTH_MOD,
 		EXPORT_SELECTION,
 
@@ -23,6 +24,6 @@ public class Hotkeys {
 		MOVE_FOCUSED_CORNER,
 		CLEAR_SELECTION,
 		TOGGLE_RENDERING,
-		OPEN_CONFIG,
-	};
+		OPEN_CONFIG
+	);
 }
