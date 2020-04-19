@@ -11,6 +11,7 @@ import fi.dy.masa.malilib.hotkeys.IKeybindManager;
 import fi.dy.masa.malilib.hotkeys.IMouseInputHandler;
 import fi.dy.masa.malilib.config.options.ConfigHotkey;
 import fi.dy.masa.malilib.util.GuiUtils;
+import fi.dy.masa.malilib.gui.GuiBase;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Direction;
@@ -65,6 +66,9 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 			return true;
 		} else if (key == Hotkeys.TOGGLE_RENDERING.getKeybind()) {
 			RenderHandler.enableRendering = !RenderHandler.enableRendering;
+			return true;
+		} else if (key == Hotkeys.OPEN_CONFIG.getKeybind()) {
+			GuiBase.openGui(new GuiConfig());
 			return true;
 		}
 		return false;
