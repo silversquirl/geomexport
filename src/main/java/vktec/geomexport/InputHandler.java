@@ -54,14 +54,6 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 			Vec3d pos = MinecraftClient.getInstance().player.getPos().add(0, 0.2, 0);
 			Selection.setFocused(new BlockPos(pos));
 			return true;
-		} else if (key == Hotkeys.WRITE_FILE.getKeybind()) {
-			try (BlocksWriter bw = new BlocksWriter(FileSystems.getDefault().getPath("testy_file"))) {
-				bw.writeRegion(MinecraftClient.getInstance().world, Selection.a, Selection.b);
-			} catch (IOException e) {
-				System.out.println("code broken yuou fuckface");
-				e.printStackTrace();
-			}
-			return true;
 		} else if (key == Hotkeys.CLEAR_SELECTION.getKeybind()) {
 			Selection.a = null;
 			Selection.b = null;

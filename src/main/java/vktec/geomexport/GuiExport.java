@@ -3,6 +3,8 @@
 package vktec.geomexport;
 
 import fi.dy.masa.malilib.util.StringUtils;
+import fi.dy.masa.malilib.util.InfoUtils;
+import fi.dy.masa.malilib.gui.Message.MessageType;
 import fi.dy.masa.malilib.gui.GuiListBase;
 import fi.dy.masa.malilib.gui.interfaces.ISelectionListener;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
@@ -13,7 +15,11 @@ import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.widgets.WidgetDirectoryEntry;
 import fi.dy.masa.malilib.gui.widgets.WidgetFileBrowserBase.DirectoryEntry;
 import fi.dy.masa.malilib.interfaces.IConfirmationListener;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.MinecraftClient;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 
 public class GuiExport extends GuiListBase<DirectoryEntry, WidgetDirectoryEntry, WidgetExportBrowser> implements IButtonActionListener, IConfirmationListener {
 	public GuiExport() {
@@ -64,7 +70,20 @@ public class GuiExport extends GuiListBase<DirectoryEntry, WidgetDirectoryEntry,
 	@Override
 	public boolean onActionConfirmed() {
 		this.doClose = true;
-		// TODO: actual export
+
+		MinecraftClient.getInstance().execute(() -> {
+			InfoUtils.showInGameMessage(MessageType.INFO, "geomexport.message.export_start");
+
+			Path path = this.getListWidget().getCurrentDirectory().toPath();
+
+			try (BlocksWriter bw = new BlocksWriter(path)) {
+				bw.writeRegion(MinecraftClient.getInstance().world, Selection.a, Selection.b);
+				InfoUtils.showInGameMessage(MessageType.SUCCESS, "geomexport.message.export_success");
+			} catch (IOException e) {
+				InfoUtils.showInGameMessage(MessageType.ERROR, "geomexport.message.export_failure");
+			}
+		});
+
 		return true;
 	}
 
