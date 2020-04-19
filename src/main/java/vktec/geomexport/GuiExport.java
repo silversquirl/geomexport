@@ -71,7 +71,7 @@ public class GuiExport extends GuiListBase<DirectoryEntry, WidgetDirectoryEntry,
 	public boolean onActionConfirmed() {
 		this.doClose = true;
 
-		MinecraftClient.getInstance().execute(() -> {
+		new Thread(() -> {
 			InfoUtils.showInGameMessage(MessageType.INFO, "geomexport.message.export_start");
 
 			Path path = this.getListWidget().getCurrentDirectory().toPath();
@@ -82,7 +82,7 @@ public class GuiExport extends GuiListBase<DirectoryEntry, WidgetDirectoryEntry,
 			} catch (IOException e) {
 				InfoUtils.showInGameMessage(MessageType.ERROR, "geomexport.message.export_failure");
 			}
-		});
+		}).start();
 
 		return true;
 	}
