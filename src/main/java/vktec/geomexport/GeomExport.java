@@ -15,7 +15,7 @@ import fi.dy.masa.malilib.interfaces.IRenderer;
 import fi.dy.masa.malilib.interfaces.IWorldLoadListener;
 
 public class GeomExport implements ModInitializer {
-	public static final String MOD_ID = "geom_export";
+	public static final String MOD_ID = "geomexport";
 	public static final Logger logger = LogManager.getLogger(MOD_ID);
 
 	@Override

@@ -70,6 +70,9 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 		} else if (key == Hotkeys.OPEN_CONFIG.getKeybind()) {
 			GuiBase.openGui(new GuiConfig(GuiConfig.ConfigTab.HOTKEYS));
 			return true;
+		} else if (key == Hotkeys.EXPORT_SELECTION.getKeybind()) {
+			GuiBase.openGui(new GuiExport());
+			return true;
 		}
 		return false;
 	}

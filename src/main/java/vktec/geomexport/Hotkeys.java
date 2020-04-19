@@ -13,6 +13,7 @@ public class Hotkeys {
 	public static final ConfigHotkey CLEAR_SELECTION       = new ConfigHotkey("clearSelection",      "G,C", "Clears the selection coordinates");
 	public static final ConfigHotkey TOGGLE_RENDERING      = new ConfigHotkey("toggleRendering",     "G,R", "Toggles all HUD and in-world rendering");
 	public static final ConfigHotkey OPEN_CONFIG           = new ConfigHotkey("openConfig",          "G,S", "Opens the config menu");
+	public static final ConfigHotkey EXPORT_SELECTION      = new ConfigHotkey("exportSelection",     "G,E", "Exports the selection");
 	public static final ConfigHotkey WRITE_FILE            = new ConfigHotkey("writeFile",           "G,W", "TEMPORARY: Writes the area to an obj file");
 
 	public static final ConfigHotkey[] HOTKEYS = {
@@ -22,6 +23,7 @@ public class Hotkeys {
 		CLEAR_SELECTION,
 		TOGGLE_RENDERING,
 		OPEN_CONFIG,
+		EXPORT_SELECTION,
 		WRITE_FILE,
 	};
 }
