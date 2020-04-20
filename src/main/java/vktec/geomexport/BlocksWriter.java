@@ -65,14 +65,13 @@ public class BlocksWriter implements AutoCloseable {
 		Map<String,Integer> vertexCache = new HashMap<>();
 		Map<String,Integer> normalCache = new HashMap<>();
 		Map<String,Integer> uvCache = new HashMap<>();
-		Set<String> materialCache = new HashSet<>();
+		Map<String,ObjQuad> quadCache = new HashMap<>();
+		Map<String,Material> materialCache = new HashMap<>();
 
 		Vec3d vecOrigin = new Vec3d(a.getX(), a.getY(), a.getZ());
 
 		Vec3d[] vertices = new Vec3d[4];
 		Vec2f[] uvs = new Vec2f[vertices.length];
-		int[] vertexIndices = new int[vertices.length];
-		int[] uvIndices = new int[vertices.length];
 
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
 			BlockState block = world.getBlockState(pos);
@@ -85,44 +84,32 @@ public class BlocksWriter implements AutoCloseable {
 
 			Vec3d relPos = new Vec3d(pos.getX(), pos.getY(), pos.getZ()).subtract(vecOrigin);
 
-			boolean writtenObj = false;
-
 			for (Direction dir : BlocksWriter.directions) {
 				Vec3d normal = null;
 				if (dir != null) normal = new Vec3d(dir.getVector());
 
 				for (BakedQuad quad : model.getQuads(block, dir, random)) {
-					// Prevent writing the object if there's no quads in it
-					if (!writtenObj) {
-						this.objWriter.beginObject(block.getBlock().getName().asString());
-						writtenObj = true;
-					}
-
+					int[] vertexIndices = new int[vertices.length];
+					int[] uvIndices = new int[vertices.length];
 					// Material data
 					Sprite sprite = ((BakedQuadDuck)quad).getSprite();
-					String materialName = sprite.getId().toString();
+					String materialName;
 					if (quad.hasColor() && biomeTintColor != -1) {
-						materialName += String.format("#%X", biomeTintColor);
+						materialName = Material.genName(sprite, biomeTintColor);
+					} else {
+						materialName = Material.genName(sprite);
 					}
 
-					if (!materialCache.contains(materialName)) {
-						// Write texture to file
-						NativeImage texture = ((SpriteDuck)sprite).getImages()[0];
-						Path texturePath = this.textureDir.resolve(materialName + ".png");
-						texturePath.getParent().toFile().mkdirs();
+					Material mat = materialCache.get(materialName);
+					if (mat == null) {
 						if (quad.hasColor()) {
-							texture = ImageMixer.tintImage(texture, biomeTintColor);
+							mat = new Material(materialName, sprite, biomeTintColor);
+						} else {
+							mat = new Material(materialName, sprite);
 						}
-						texture.writeFile(texturePath);
-
-						// Generate MTL material
-						this.mtlWriter.beginMaterial(materialName);
-						/*if (quad.hasColor()) {
-							this.mtlWriter.writeDiffuseColor(biomeTintColor);
-						}*/
-						this.mtlWriter.writeDiffuseTexture(this.dir.relativize(texturePath).toString());
-
-						materialCache.add(materialName);
+						materialCache.put(materialName, mat);
+					} else {
+						mat.refCount++;
 					}
 
 					// Vertex data
@@ -170,9 +157,42 @@ public class BlocksWriter implements AutoCloseable {
 						i++;
 					}
 
-					this.objWriter.useMtl(materialName);
-					this.objWriter.writeFace(vertexIndices, uvIndices, normalIndex);
+					ObjQuad outQuad = new ObjQuad(mat, vertexIndices, uvIndices, normalIndex);
+					String oldId = outQuad.getIdentifier();
+					outQuad = quadCache.putIfAbsent(outQuad.getIdentifier(), outQuad);
+					if (outQuad != null) {
+						// Deref the old materials
+						outQuad.material.refCount--;
+						mat.refCount--;
+
+						String newMatName = outQuad.material.name + "+" + mat.name;
+						Material newMat = materialCache.get(newMatName);
+						if (newMat == null) {
+							// Merge the quad textures to create the new material
+							NativeImage newTex = ImageMixer.composite(outQuad.material.texture, mat.texture);
+							newMat = new Material(newMatName, newTex);
+							materialCache.put(newMatName, newMat);
+						} else {
+							newMat.refCount++;
+						}
+						outQuad.material = newMat;
+					}
 				}
+			}
+
+			if (quadCache.size() > 0) {
+				this.objWriter.beginObject(block.getBlock().getName().asString());
+
+				for (ObjQuad outQuad : quadCache.values()) {
+					outQuad.write(this.objWriter);
+				}
+				quadCache.clear();
+			}
+		}
+
+		for (Material mat : materialCache.values()) {
+			if (mat.refCount > 0) {
+				mat.write(this.mtlWriter, this.dir, this.textureDir);
 			}
 		}
 	}
