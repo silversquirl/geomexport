@@ -5,19 +5,18 @@ package vktec.geomexport;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
+import net.minecraft.client.render.model.ModelLoader;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -50,6 +49,13 @@ public class BlocksWriter implements AutoCloseable {
 
 		this.objWriter = new ObjWriter(dir.resolve("model.obj"));
 		this.objWriter.addMtl(dir.relativize(mtlPath).toString());
+
+		// Stolen from client.render.block.FluidRenderer
+		this.lavaSprites[0] = models.getModel(Blocks.LAVA.getDefaultState()).getSprite();
+		this.lavaSprites[1] = ModelLoader.LAVA_FLOW.getSprite();
+		this.waterSprites[0] = models.getModel(Blocks.WATER.getDefaultState()).getSprite();
+		this.waterSprites[1] = ModelLoader.WATER_FLOW.getSprite();
+        this.waterOverlaySprite = ModelLoader.WATER_OVERLAY.getSprite();
 	}
 
 	public void close() throws IOException {
@@ -57,144 +63,122 @@ public class BlocksWriter implements AutoCloseable {
 		this.objWriter.close();
 	}
 
+	private static final BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
+	private static final BlockColors colorMap = MinecraftClient.getInstance().getBlockColorMap();
+	private static final Random random = new Random();
+
+	private final ObjCaches cache = new ObjCaches();
+
+	private final Sprite[] lavaSprites = new Sprite[2];
+	private final Sprite[] waterSprites = new Sprite[2];
+	private final Sprite waterOverlaySprite;
+
+	private Vec3d origin;
+
 	public void writeRegion(World world, BlockPos a, BlockPos b) throws IOException {
-		BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
-		BlockColors colorMap = MinecraftClient.getInstance().getBlockColorMap();
-		Random random = new Random();
-
-		Map<String,Integer> vertexCache = new HashMap<>();
-		Map<String,Integer> normalCache = new HashMap<>();
-		Map<String,Integer> uvCache = new HashMap<>();
-		Map<String,ObjQuad> quadCache = new HashMap<>();
-		Map<String,Material> materialCache = new HashMap<>();
-
-		Vec3d vecOrigin = new Vec3d(a.getX(), a.getY(), a.getZ());
-
-		Vec3d[] vertices = new Vec3d[4];
-		Vec2f[] uvs = new Vec2f[vertices.length];
+		this.origin = new Vec3d(a.getX(), a.getY(), a.getZ());
 
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
 			BlockState block = world.getBlockState(pos);
-			BakedModel model = models.getModel(block);
-			int biomeTintColor = colorMap.getColor(block, world, pos, 0);
-			if (biomeTintColor == -1) {
-				MaterialColor c = block.getTopMaterialColor(world, pos);
-				biomeTintColor = c != null ? c.color : -1;
-			}
-
-			Vec3d relPos = new Vec3d(pos.getX(), pos.getY(), pos.getZ()).subtract(vecOrigin);
-
-			for (Direction dir : BlocksWriter.directions) {
-				Vec3d normal = null;
-				if (dir != null) normal = new Vec3d(dir.getVector());
-
-				for (BakedQuad quad : model.getQuads(block, dir, random)) {
-					int[] vertexIndices = new int[vertices.length];
-					int[] uvIndices = new int[vertices.length];
-					// Material data
-					Sprite sprite = ((BakedQuadDuck)quad).getSprite();
-					String materialName;
-					if (quad.hasColor() && biomeTintColor != -1) {
-						materialName = Material.genName(sprite, biomeTintColor);
-					} else {
-						materialName = Material.genName(sprite);
-					}
-
-					Material mat = materialCache.get(materialName);
-					if (mat == null) {
-						if (quad.hasColor()) {
-							mat = new Material(materialName, sprite, biomeTintColor);
-						} else {
-							mat = new Material(materialName, sprite);
-						}
-						materialCache.put(materialName, mat);
-					} else {
-						mat.refCount++;
-					}
-
-					// Vertex data
-					BlocksWriter.decodeVertices(vertices, uvs, quad.getVertexData(), sprite);
-
-					if (dir == null) {
-						normal = calcNormal(vertices[0], vertices[1], vertices[2], vertices[3]);
-					}
-
-					String normalStr = String.format("%f %f %f", normal.x, normal.y, normal.z);
-
-					Integer normalIndex = normalCache.putIfAbsent(normalStr, normalCache.size());
-					if (normalIndex == null) {
-						this.objWriter.writeVertexNormal(normal);
-						normalIndex = normalCache.size() - 1;
-					}
-
-					int i = 0;
-					for (Vec3d vertex : vertices) {
-						Vec3d relVertex = vertex.add(relPos);
-
-						String vertexStr = String.format("%f %f %f", relVertex.x, relVertex.y, relVertex.z);
-
-						Integer vertexIndex = vertexCache.putIfAbsent(vertexStr, vertexCache.size());
-						if (vertexIndex == null) {
-							this.objWriter.writeVertex(relVertex);
-							vertexIndices[i] = vertexCache.size() - 1;
-						} else {
-							vertexIndices[i] = vertexIndex;
-						}
-						i++;
-					}
-
-					i = 0;
-					for (Vec2f uv : uvs) {
-						String uvStr = String.format("%f %f", uv.x, uv.y);
-
-						Integer uvIndex = uvCache.putIfAbsent(uvStr, uvCache.size());
-						if (uvIndex == null) {
-							this.objWriter.writeTextureCoord(uv);
-							uvIndices[i] = uvCache.size() - 1;
-						} else {
-							uvIndices[i] = uvIndex;
-						}
-						i++;
-					}
-
-					ObjQuad outQuad = new ObjQuad(mat, vertexIndices, uvIndices, normalIndex);
-					String oldId = outQuad.getIdentifier();
-					outQuad = quadCache.putIfAbsent(outQuad.getIdentifier(), outQuad);
-					if (outQuad != null) {
-						// Deref the old materials
-						outQuad.material.refCount--;
-						mat.refCount--;
-
-						String newMatName = outQuad.material.name + "+" + mat.name;
-						Material newMat = materialCache.get(newMatName);
-						if (newMat == null) {
-							// Merge the quad textures to create the new material
-							NativeImage newTex = ImageMixer.composite(outQuad.material.texture, mat.texture);
-							newMat = new Material(newMatName, newTex);
-							materialCache.put(newMatName, newMat);
-						} else {
-							newMat.refCount++;
-						}
-						outQuad.material = newMat;
-					}
-				}
-			}
-
-			if (quadCache.size() > 0) {
-				this.objWriter.beginObject(block.getBlock().getName().asString());
-
-				for (ObjQuad outQuad : quadCache.values()) {
-					outQuad.write(this.objWriter);
-				}
-				quadCache.clear();
-			}
+			this.writeBlock(world, pos, block);
+			this.writeFluid(world, pos, block.getFluidState());
 		}
 
-		for (Material mat : materialCache.values()) {
+		for (Material mat : cache.material.values()) {
 			if (mat.refCount > 0) {
 				mat.write(this.mtlWriter, this.dir, this.textureDir);
 			}
 		}
+	}
+
+	private int getBiomeTint(World world, BlockPos pos, BlockState block) {
+		int tint = colorMap.getColor(block, world, pos, 0);
+		if (tint >= 0) return tint;
+
+		MaterialColor color = block.getTopMaterialColor(world, pos);
+		if (color == null) return -1;
+		return color.color;
+	}
+
+	private void writeBlock(World world, BlockPos pos, BlockState block) throws IOException {
+		BakedModel model = models.getModel(block);
+		Vec3d relPos = new Vec3d(pos).subtract(this.origin);
+		int biomeTintColor = this.getBiomeTint(world, pos, block);
+
+		for (Direction dir : BlocksWriter.directions) {
+			Vec3d normal = null;
+			if (dir != null) normal = new Vec3d(dir.getVector());
+
+			for (BakedQuad quad : model.getQuads(block, dir, random)) {
+				Vec3d[] vertices = new Vec3d[4];
+				Vec2f[] uvs = new Vec2f[vertices.length];
+
+				// Material data
+				Sprite sprite = ((BakedQuadDuck)quad).getSprite();
+				String materialName;
+				if (quad.hasColor() && biomeTintColor != -1) {
+					materialName = Material.genName(sprite, biomeTintColor);
+				} else {
+					materialName = Material.genName(sprite);
+				}
+
+				Material mat = cache.material.get(materialName);
+				if (mat == null) {
+					if (quad.hasColor()) {
+						mat = new Material(materialName, sprite, biomeTintColor);
+					} else {
+						mat = new Material(materialName, sprite);
+					}
+					cache.material.put(materialName, mat);
+				} else {
+					mat.refCount++;
+				}
+
+
+				// Vertex data
+				BlocksWriter.decodeVertices(vertices, uvs, quad.getVertexData(), sprite);
+				for (int i = 0; i < vertices.length; i++) {
+					vertices[i] = vertices[i].add(relPos);
+				}
+
+				if (dir == null) {
+					normal = calcNormal(vertices[0], vertices[1], vertices[2], vertices[3]);
+				}
+
+				Quad outQuad = new Quad(mat, vertices, uvs, normal);
+				outQuad = cache.quad.putIfAbsent(outQuad.getIdentifier(), outQuad);
+				if (outQuad != null) {
+					// Deref the old materials
+					outQuad.material.refCount--;
+					mat.refCount--;
+
+					String newMatName = outQuad.material.name + "+" + mat.name;
+					Material newMat = cache.material.get(newMatName);
+					if (newMat == null) {
+						// Merge the quad textures to create the new material
+						NativeImage newTex = ImageMixer.composite(outQuad.material.texture, mat.texture);
+						newMat = new Material(newMatName, newTex);
+						cache.material.put(newMatName, newMat);
+					} else {
+						newMat.refCount++;
+					}
+					outQuad.material = newMat;
+				}
+			}
+		}
+
+		if (cache.quad.size() > 0) {
+			this.objWriter.beginObject(block.getBlock().getName().asString());
+
+			for (Quad outQuad : cache.quad.values()) {
+				outQuad.write(this.objWriter, this.cache);
+			}
+			cache.quad.clear();
+		}
+	}
+
+	private void writeFluid(World world, BlockPos pos, FluidState fluid) throws IOException {
+		if (fluid.isEmpty()) return;
 	}
 
 	private static void decodeVertices(Vec3d[] vertices, Vec2f[] uvs, int[] vertexData, Sprite sprite) {
