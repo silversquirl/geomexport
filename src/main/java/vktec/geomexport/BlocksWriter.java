@@ -11,9 +11,9 @@ import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.render.block.BlockModels;
+import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
-import net.minecraft.client.render.model.ModelLoader;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.fluid.FluidState;
@@ -49,13 +49,6 @@ public class BlocksWriter implements AutoCloseable {
 
 		this.objWriter = new ObjWriter(dir.resolve("model.obj"));
 		this.objWriter.addMtl(dir.relativize(mtlPath).toString());
-
-		// Stolen from client.render.block.FluidRenderer
-		this.lavaSprites[0] = models.getModel(Blocks.LAVA.getDefaultState()).getSprite();
-		this.lavaSprites[1] = ModelLoader.LAVA_FLOW.getSprite();
-		this.waterSprites[0] = models.getModel(Blocks.WATER.getDefaultState()).getSprite();
-		this.waterSprites[1] = ModelLoader.WATER_FLOW.getSprite();
-        this.waterOverlaySprite = ModelLoader.WATER_OVERLAY.getSprite();
 	}
 
 	public void close() throws IOException {
@@ -63,25 +56,24 @@ public class BlocksWriter implements AutoCloseable {
 		this.objWriter.close();
 	}
 
-	private static final BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
 	private static final BlockColors colorMap = MinecraftClient.getInstance().getBlockColorMap();
+	private static final BlockModels models = MinecraftClient.getInstance().getBakedModelManager().getBlockModels();
+	private static final BlockRenderManager blockRenderer = MinecraftClient.getInstance().getBlockRenderManager();
 	private static final Random random = new Random();
 
 	private final ObjCaches cache = new ObjCaches();
+	private FluidRenderTarget fluidRenderTarget;
 
-	private final Sprite[] lavaSprites = new Sprite[2];
-	private final Sprite[] waterSprites = new Sprite[2];
-	private final Sprite waterOverlaySprite;
-
-	private Vec3d origin;
+	private BlockPos origin;
 
 	public void writeRegion(World world, BlockPos a, BlockPos b) throws IOException {
-		this.origin = new Vec3d(a.getX(), a.getY(), a.getZ());
+		this.origin = a;
+		this.fluidRenderTarget = new FluidRenderTarget(this.origin, this.cache);
 
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
 			BlockState block = world.getBlockState(pos);
 			this.writeBlock(world, pos, block);
-			this.writeFluid(world, pos, block.getFluidState());
+			this.writeFluid(world, pos, block);
 		}
 
 		for (Material mat : cache.material.values()) {
@@ -102,7 +94,7 @@ public class BlocksWriter implements AutoCloseable {
 
 	private void writeBlock(World world, BlockPos pos, BlockState block) throws IOException {
 		BakedModel model = models.getModel(block);
-		Vec3d relPos = new Vec3d(pos).subtract(this.origin);
+		Vec3d relPos = new Vec3d(pos.subtract(this.origin));
 		int biomeTintColor = this.getBiomeTint(world, pos, block);
 
 		for (Direction dir : BlocksWriter.directions) {
@@ -115,25 +107,12 @@ public class BlocksWriter implements AutoCloseable {
 
 				// Material data
 				Sprite sprite = ((BakedQuadDuck)quad).getSprite();
-				String materialName;
-				if (quad.hasColor() && biomeTintColor != -1) {
-					materialName = Material.genName(sprite, biomeTintColor);
+				Material mat;
+				if (quad.hasColor() && biomeTintColor >= 0) {
+					mat = Material.create(sprite, biomeTintColor, this.cache);
 				} else {
-					materialName = Material.genName(sprite);
+					mat = Material.create(sprite, this.cache);
 				}
-
-				Material mat = cache.material.get(materialName);
-				if (mat == null) {
-					if (quad.hasColor()) {
-						mat = new Material(materialName, sprite, biomeTintColor);
-					} else {
-						mat = new Material(materialName, sprite);
-					}
-					cache.material.put(materialName, mat);
-				} else {
-					mat.refCount++;
-				}
-
 
 				// Vertex data
 				BlocksWriter.decodeVertices(vertices, uvs, quad.getVertexData(), sprite);
@@ -177,8 +156,18 @@ public class BlocksWriter implements AutoCloseable {
 		}
 	}
 
-	private void writeFluid(World world, BlockPos pos, FluidState fluid) throws IOException {
+	private void writeFluid(World world, BlockPos pos, BlockState block) throws IOException {
+		FluidState fluid = block.getFluidState();
 		if (fluid.isEmpty()) return;
+
+		String name = block.getBlock().getName().asString();
+		if (block.getBlock() != Blocks.WATER && block.getBlock() != Blocks.LAVA) {
+			name += "_waterlogged";
+		}
+
+		this.fluidRenderTarget.beginFluid(pos);
+		blockRenderer.renderFluid(pos, world, this.fluidRenderTarget, fluid);
+		this.fluidRenderTarget.writeQuads(name, this.objWriter, this.cache);
 	}
 
 	private static void decodeVertices(Vec3d[] vertices, Vec2f[] uvs, int[] vertexData, Sprite sprite) {
@@ -190,11 +179,7 @@ public class BlocksWriter implements AutoCloseable {
 
 			float u = Float.intBitsToFloat(vertexData[i*8 + 4]);
 			float v = Float.intBitsToFloat(vertexData[i*8 + 5]);
-			float uDiff = sprite.getMaxU() - sprite.getMinU();
-			float vDiff = sprite.getMaxV() - sprite.getMinV();
-			u = (u - sprite.getMinU()) / uDiff;
-			v = (v - sprite.getMinV()) / vDiff;
-			uvs[i] = new Vec2f(u, 1-v);
+			uvs[i] = UV.spriteUV(sprite, u, v);
 		}
 	}
 

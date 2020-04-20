@@ -52,6 +52,9 @@ public class ImageMixer {
 			throw new UnsupportedOperationException("Cannot tint a luminance image");
 		}
 
+		final int white = 0xFFFFFF;
+		if ((rgb & white) == white) return image;
+
 		NativeImage target = ImageMixer.clone(image);
 		ByteBuffer buf = ((NativeImageDuck)(Object)target).getDataBuffer();
 

@@ -42,4 +42,28 @@ public class Material {
 		w.beginMaterial(this.name);
 		w.writeDiffuseTexture(baseDir.relativize(texturePath).toString());
 	}
+
+	public static Material create(Sprite sprite, int biomeTint, ObjCaches cache) {
+		String name = Material.genName(sprite, biomeTint);
+		Material mat = cache.material.get(name);
+		if (mat == null) {
+			mat = new Material(name, sprite, biomeTint);
+			cache.material.put(name, mat);
+		} else {
+			mat.refCount++;
+		}
+		return mat;
+	}
+
+	public static Material create(Sprite sprite, ObjCaches cache) {
+		String name = Material.genName(sprite);
+		Material mat = cache.material.get(name);
+		if (mat == null) {
+			mat = new Material(name, sprite);
+			cache.material.put(name, mat);
+		} else {
+			mat.refCount++;
+		}
+		return mat;
+	}
 }
