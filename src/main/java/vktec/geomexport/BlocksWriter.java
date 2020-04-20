@@ -71,8 +71,6 @@ public class BlocksWriter implements AutoCloseable {
 
 		Vec3d[] vertices = new Vec3d[4];
 		Vec2f[] uvs = new Vec2f[vertices.length];
-		int[] vertexIndices = new int[vertices.length];
-		int[] uvIndices = new int[vertices.length];
 
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
 			BlockState block = world.getBlockState(pos);
@@ -86,6 +84,8 @@ public class BlocksWriter implements AutoCloseable {
 				if (dir != null) normal = new Vec3d(dir.getVector());
 
 				for (BakedQuad quad : model.getQuads(block, dir, random)) {
+					int[] vertexIndices = new int[vertices.length];
+					int[] uvIndices = new int[vertices.length];
 					// Material data
 					Sprite sprite = ((BakedQuadDuck)quad).getSprite();
 					String materialName;
@@ -166,6 +166,7 @@ public class BlocksWriter implements AutoCloseable {
 							// Merge the quad textures to create the new material
 							NativeImage newTex = ImageMixer.composite(outQuad.material.texture, mat.texture);
 							newMat = new Material(newMatName, newTex);
+							materialCache.put(newMatName, newMat);
 						} else {
 							newMat.refCount++;
 						}
@@ -174,7 +175,6 @@ public class BlocksWriter implements AutoCloseable {
 				}
 			}
 
-			System.out.printf("%d\n", quadCache.size());
 			if (quadCache.size() > 0) {
 				this.objWriter.beginObject(block.getBlock().getName().asString());
 
