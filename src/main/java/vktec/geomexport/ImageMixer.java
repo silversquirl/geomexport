@@ -32,9 +32,11 @@ public class ImageMixer {
 			dest.get(destPixel);
 			src.get(srcPixel);
 
-			int alpha = srcPixel[alphaChannel];
-			for (int i = 0; i < alphaChannel; i++) {
-				destPixel[i] = (byte)(((255-alpha) * ((int)destPixel[i] & 0xFF) + alpha * ((int)srcPixel[i] & 0xFF)) / 255);
+			int alpha = ub2i(srcPixel[alphaChannel]);
+			if (alpha > 0) {
+				for (int i = 0; i < alphaChannel; i++) {
+					destPixel[i] = (byte)((255-alpha) * ub2i(destPixel[i]) + alpha * ub2i(srcPixel[i]) / 255);
+				}
 			}
 
 			dest.reset();
@@ -61,7 +63,7 @@ public class ImageMixer {
 			buf.get(pixel);
 
 			for (int i = 0; i < 3; i++) {
-				pixel[i] = (byte)(((int)pixel[i] & 0xFF) * color[i] / 255);
+				pixel[i] = (byte)(ub2i(pixel[i]) * color[i] / 255);
 			}
 
 			buf.reset();
@@ -75,5 +77,9 @@ public class ImageMixer {
 		NativeImage target = new NativeImage(image.getFormat(), image.getWidth(), image.getHeight(), false);
 		target.copyFrom(image);
 		return target;
+	}
+
+	private static int ub2i(byte unsignedByte) {
+		return (int)unsignedByte & 0xFF;
 	}
 }
