@@ -16,6 +16,7 @@ import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -60,12 +61,15 @@ public class BlocksWriter implements AutoCloseable {
 	private static final Random random = new Random();
 
 	private final ObjCaches cache = new ObjCaches();
+	private final MatrixStack matrixStack = new MatrixStack();
+	private BlockRenderTarget blockRenderTarget;
 	private FluidRenderTarget fluidRenderTarget;
 
 	private BlockPos origin;
 
 	public void writeRegion(World world, BlockPos a, BlockPos b) throws IOException {
 		this.origin = a;
+		this.blockRenderTarget = new BlockRenderTarget(this.origin, this.cache);
 		this.fluidRenderTarget = new FluidRenderTarget(this.origin, this.cache);
 
 		for (BlockPos pos : BlockPos.iterate(a, b)) {
@@ -81,77 +85,13 @@ public class BlocksWriter implements AutoCloseable {
 		}
 	}
 
-	private int getBiomeTint(World world, BlockPos pos, BlockState block) {
-		int tint = colorMap.getColor(block, world, pos, 0);
-		if (tint >= 0) return tint;
-
-		MaterialColor color = block.getTopMaterialColor(world, pos);
-		if (color == null) return -1;
-		return color.color;
-	}
-
 	private void writeBlock(World world, BlockPos pos, BlockState block) throws IOException {
-		BakedModel model = models.getModel(block);
-		Vec3d relPos = new Vec3d(pos.subtract(this.origin));
-		int biomeTintColor = this.getBiomeTint(world, pos, block);
+		String name = block.getBlock().getName().asString();
 
-		for (Direction dir : BlocksWriter.directions) {
-			Vec3d normal = null;
-			if (dir != null) normal = new Vec3d(dir.getVector());
-
-			for (BakedQuad quad : model.getQuads(block, dir, random)) {
-				Vec3d[] vertices = new Vec3d[4];
-				Vec2f[] uvs = new Vec2f[vertices.length];
-
-				// Material data
-				Sprite sprite = quad.sprite;
-				Material mat;
-				if (quad.hasColor() && biomeTintColor >= 0) {
-					mat = Material.create(sprite, biomeTintColor, this.cache);
-				} else {
-					mat = Material.create(sprite, this.cache);
-				}
-
-				// Vertex data
-				BlocksWriter.decodeVertices(vertices, uvs, quad.getVertexData(), sprite);
-				for (int i = 0; i < vertices.length; i++) {
-					vertices[i] = vertices[i].add(relPos);
-				}
-
-				if (dir == null) {
-					normal = calcNormal(vertices[0], vertices[1], vertices[2], vertices[3]);
-				}
-
-				Quad outQuad = new Quad(mat, vertices, uvs, normal);
-				outQuad = cache.quad.putIfAbsent(outQuad.getIdentifier(), outQuad);
-				if (outQuad != null) {
-					// Deref the old materials
-					outQuad.material.refCount--;
-					mat.refCount--;
-
-					String newMatName = outQuad.material.name + "+" + mat.name;
-					Material newMat = cache.material.get(newMatName);
-					if (newMat == null) {
-						// Merge the quad textures to create the new material
-						NativeImage newTex = ImageMixer.composite(outQuad.material.texture, mat.texture);
-						newMat = new Material(newMatName, newTex);
-						cache.material.put(newMatName, newMat);
-					} else {
-						newMat.refCount++;
-					}
-					outQuad.material = newMat;
-				}
-			}
-		}
-
-		if (cache.quad.size() > 0) {
-			this.objWriter.beginObject(block.getBlock().getName().asString());
-
-			for (Quad outQuad : cache.quad.values()) {
-				outQuad.write(this.objWriter, this.cache);
-			}
-			cache.quad.clear();
-		}
+		this.blockRenderTarget.begin(pos);
+		boolean cullHiddenFaces = false;
+		blockRenderer.renderBlock(block, pos, world, this.matrixStack, this.blockRenderTarget, cullHiddenFaces, this.random);
+		this.blockRenderTarget.writeQuads(name, this.objWriter, this.cache);
 	}
 
 	private void writeFluid(World world, BlockPos pos, BlockState block) throws IOException {
@@ -166,33 +106,5 @@ public class BlocksWriter implements AutoCloseable {
 		this.fluidRenderTarget.begin(pos);
 		blockRenderer.renderFluid(pos, world, this.fluidRenderTarget, fluid);
 		this.fluidRenderTarget.writeQuads(name, this.objWriter, this.cache);
-	}
-
-	private static void decodeVertices(Vec3d[] vertices, Vec2f[] uvs, int[] vertexData, Sprite sprite) {
-		for (int i = 0; i < vertices.length; i++) {
-			float x = Float.intBitsToFloat(vertexData[i*8 + 0]);
-			float y = Float.intBitsToFloat(vertexData[i*8 + 1]);
-			float z = Float.intBitsToFloat(vertexData[i*8 + 2]);
-			vertices[i] = new Vec3d(x, y, z);
-
-			float u = Float.intBitsToFloat(vertexData[i*8 + 4]);
-			float v = Float.intBitsToFloat(vertexData[i*8 + 5]);
-			uvs[i] = UV.spriteUV(sprite, u, v);
-		}
-	}
-
-	private static Vec3d calcNormal(Vec3d a, Vec3d b, Vec3d c, Vec3d d) {
-		// Assuming abcd is a quad (i.e. all on one plane), we can ignore
-		// one of the coordinates and instead just find the surface normal
-		// of a triangle abc. Hence, we completely ignore d
-
-		Vec3d u = b.subtract(a);
-		Vec3d v = c.subtract(a);
-
-		double x = (u.y * v.z) - (u.z * v.y);
-		double y = (u.z * v.x) - (u.x * v.z);
-		double z = (u.x * v.y) - (u.y * v.x);
-
-		return new Vec3d(x, y, z);
 	}
 }

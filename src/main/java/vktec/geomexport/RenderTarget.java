@@ -11,25 +11,26 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 public abstract class RenderTarget implements VertexConsumer {
-	private final BlockPos origin;
-	private Vec3d transpose;
-	private final ObjCaches cache;
+	protected final BlockPos origin;
+	protected Vec3d transpose;
+	protected final ObjCaches cache;
 
 	private Vec3d[] vertexBuffer;
 	private UV[] uvBuffer;
+	private Vec3d[] normalBuffer;
 	private int vertexCount;
-	private Vec3d normal;
 	private int tint;
-	private final List<Quad> quads = new ArrayList<>();
 
-	private final Sprite[] sprites;
+	private final List<Sprite> sprites;
 
-	public RenderTarget(BlockPos origin, ObjCaches cache, Sprite[] sprites) {
+	public RenderTarget(BlockPos origin, ObjCaches cache) {
 		this.origin = origin;
 		this.cache = cache;
-		this.sprites = sprites;
+		this.sprites = this.initSprites();
 		this.resetBuffers();
 	}
+
+	protected abstract List<Sprite> initSprites();
 
 	protected void resetBuffers() {
 		this.vertexBuffer = new Vec3d[4];
@@ -38,22 +39,24 @@ public abstract class RenderTarget implements VertexConsumer {
 	}
 
 	public void begin(BlockPos pos) {
-		// Vertex coords are ofset by the block's position within the subchunk
-		int x = pos.getX() & 0xF;
-		int y = pos.getY() & 0xF;
-		int z = pos.getZ() & 0xF;
-		this.transpose = new Vec3d(pos.subtract(this.origin)).subtract(x, y, z);
+		this.transpose = new Vec3d(pos.subtract(this.origin));
 	}
 
-	public void writeQuads(String name, ObjWriter objWriter, ObjCaches cache) throws IOException {
-		if (this.quads.size() > 0) {
-			objWriter.beginObject(name);
+	protected abstract void addQuad(Quad quad);
+	protected abstract Iterable<Quad> getQuads();
+	protected abstract void clearQuads();
 
-			for (Quad outQuad : this.quads) {
-				outQuad.write(objWriter, cache);
+	public void writeQuads(String name, ObjWriter objWriter, ObjCaches cache) throws IOException {
+		boolean begun = false;
+		for (Quad outQuad : this.getQuads()) {
+			if (!begun) {
+				objWriter.beginObject(name);
+				begun = true;
 			}
-			this.quads.clear();
+
+			outQuad.write(objWriter, cache);
 		}
+		this.clearQuads();
 	}
 
 	public VertexConsumer vertex(double x, double y, double z) {
@@ -111,7 +114,7 @@ public abstract class RenderTarget implements VertexConsumer {
 
 			Material mat = Material.create(sprite, this.tint, this.cache);
 			Quad quad = new Quad(mat, this.vertexBuffer, this.uvBuffer, this.normal);
-			this.quads.add(quad);
+			this.addQuad(quad);
 
 			this.resetBuffers();
 		}
