@@ -24,6 +24,7 @@
 		]
 	},
 
+	"accessWidener": "geomexport.accesswidener",
 	"mixins": [
 		"geomexport.mixins.json"
 	],

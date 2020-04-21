@@ -32,6 +32,10 @@ dependencies {
 	modCompile "fi.dy.masa.malilib:malilib-fabric-${project.minecraft_version}:${project.malilib_version}"
 }
 
+minecraft {
+	accessWidener = file("src/main/resources/geomexport.accesswidener")
+}
+
 processResources {
 	inputs.property "version", project.version
 

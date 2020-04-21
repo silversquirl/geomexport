@@ -4,7 +4,7 @@ package vktec.geomexport;
 
 import java.nio.ByteBuffer;
 import net.minecraft.client.texture.NativeImage;
-import vktec.geomexport.duck.NativeImageDuck;
+import org.lwjgl.system.MemoryUtil;
 
 public class ImageMixer {
 	public static NativeImage composite(NativeImage destImage, NativeImage srcImage) {
@@ -17,8 +17,8 @@ public class ImageMixer {
 		}
 
 		NativeImage target = ImageMixer.clone(destImage);
-		ByteBuffer dest = ((NativeImageDuck)(Object)target).getDataBuffer();
-		ByteBuffer src = ((NativeImageDuck)(Object)srcImage).getDataBuffer();
+		ByteBuffer dest = getDataBuffer(target);
+		ByteBuffer src = getDataBuffer(srcImage);
 
 		if (dest.limit() != src.limit()) {
 			throw new UnsupportedOperationException("Images to composite must be the same size");
@@ -56,7 +56,7 @@ public class ImageMixer {
 		if ((rgb & white) == white) return image;
 
 		NativeImage target = ImageMixer.clone(image);
-		ByteBuffer buf = ((NativeImageDuck)(Object)target).getDataBuffer();
+		ByteBuffer buf = getDataBuffer(target);
 
 		int[] color = {rgb >> 16 & 0xFF, rgb >> 8 & 0xFF, rgb & 0xFF};
 
@@ -84,5 +84,9 @@ public class ImageMixer {
 
 	private static int ub2i(byte unsignedByte) {
 		return (int)unsignedByte & 0xFF;
+	}
+
+	private static ByteBuffer getDataBuffer(NativeImage img) {
+		return MemoryUtil.memByteBufferSafe(img.pointer, (int)img.sizeBytes);
 	}
 }

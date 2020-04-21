@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
-import vktec.geomexport.duck.SpriteDuck;
 
 public class Material {
 	public static String genName(Sprite sprite) {
@@ -22,11 +21,11 @@ public class Material {
 	public int refCount = 1;
 
 	public Material(String name, Sprite sprite) {
-		this(name, ((SpriteDuck)sprite).getImages()[0]);
+		this(name, sprite.images[0]);
 	}
 
 	public Material(String name, Sprite sprite, int biomeTint) {
-		this(name, ImageMixer.tint(((SpriteDuck)sprite).getImages()[0], biomeTint));
+		this(name, ImageMixer.tint(sprite.images[0], biomeTint));
 	}
 
 	public Material(String name, NativeImage texture) {

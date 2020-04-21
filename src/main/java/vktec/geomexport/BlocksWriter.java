@@ -23,8 +23,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import vktec.geomexport.duck.BakedQuadDuck;
-import vktec.geomexport.duck.SpriteDuck;
 import net.minecraft.block.MaterialColor;
 
 public class BlocksWriter implements AutoCloseable {
@@ -106,7 +104,7 @@ public class BlocksWriter implements AutoCloseable {
 				Vec2f[] uvs = new Vec2f[vertices.length];
 
 				// Material data
-				Sprite sprite = ((BakedQuadDuck)quad).getSprite();
+				Sprite sprite = quad.sprite;
 				Material mat;
 				if (quad.hasColor() && biomeTintColor >= 0) {
 					mat = Material.create(sprite, biomeTintColor, this.cache);

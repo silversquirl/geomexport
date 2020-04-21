@@ -1,0 +1,8 @@
+accessWidener v1 named
+
+accessible field net/minecraft/client/render/model/BakedQuad sprite Lnet/minecraft/client/texture/Sprite;
+
+accessible field net/minecraft/client/texture/NativeImage pointer J
+accessible field net/minecraft/client/texture/NativeImage sizeBytes J
+
+accessible field net/minecraft/client/texture/Sprite images [Lnet/minecraft/client/texture/NativeImage;

@@ -6,9 +6,6 @@
   "mixins": [
   ],
   "client": [
-	"BakedQuadMixin",
-	"NativeImageMixin",
-  	"SpriteMixin"
   ],
   "injectors": {
     "defaultRequire": 1
