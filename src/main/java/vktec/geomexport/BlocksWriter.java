@@ -165,7 +165,7 @@ public class BlocksWriter implements AutoCloseable {
 			name += "_waterlogged";
 		}
 
-		this.fluidRenderTarget.beginFluid(pos);
+		this.fluidRenderTarget.begin(pos);
 		blockRenderer.renderFluid(pos, world, this.fluidRenderTarget, fluid);
 		this.fluidRenderTarget.writeQuads(name, this.objWriter, this.cache);
 	}
