@@ -13,6 +13,7 @@ import net.minecraft.util.math.Vec3d;
 public abstract class RenderTarget implements VertexConsumer {
 	protected final BlockPos origin;
 	protected Vec3d transpose;
+	protected Vec3d normal;
 	protected final ObjCaches cache;
 
 	private Vec3d[] vertexBuffer;

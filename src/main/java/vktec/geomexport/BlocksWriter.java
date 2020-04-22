@@ -90,8 +90,10 @@ public class BlocksWriter implements AutoCloseable {
 
 		this.blockRenderTarget.begin(pos);
 		boolean cullHiddenFaces = false;
+		this.matrixStack.push();
 		blockRenderer.renderBlock(block, pos, world, this.matrixStack, this.blockRenderTarget, cullHiddenFaces, this.random);
 		this.blockRenderTarget.writeQuads(name, this.objWriter, this.cache);
+		this.matrixStack.pop();
 	}
 
 	private void writeFluid(World world, BlockPos pos, BlockState block) throws IOException {
@@ -103,8 +105,10 @@ public class BlocksWriter implements AutoCloseable {
 			name += "_waterlogged";
 		}
 
+		this.matrixStack.push();
 		this.fluidRenderTarget.begin(pos);
 		blockRenderer.renderFluid(pos, world, this.fluidRenderTarget, fluid);
 		this.fluidRenderTarget.writeQuads(name, this.objWriter, this.cache);
+		this.matrixStack.pop();
 	}
 }
