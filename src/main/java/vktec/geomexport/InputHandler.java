@@ -84,8 +84,8 @@ public class InputHandler implements IKeybindProvider, IMouseInputHandler, IHotk
 		Vec3d cam = mc.player.getCameraPosVec(1f);
 		Vec3d disp = mc.player.getRotationVec(1f).multiply(range);
 
-		BlockHitResult hitA = Box.rayTrace(ImmutableList.of(FULL_BLOCK_BOUNDS), cam, cam.add(disp), Selection.a);
-		BlockHitResult hitB = Box.rayTrace(ImmutableList.of(FULL_BLOCK_BOUNDS), cam, cam.add(disp), Selection.b);
+		BlockHitResult hitA = Selection.a == null ? null : Box.rayTrace(ImmutableList.of(FULL_BLOCK_BOUNDS), cam, cam.add(disp), Selection.a);
+		BlockHitResult hitB = Selection.b == null ? null : Box.rayTrace(ImmutableList.of(FULL_BLOCK_BOUNDS), cam, cam.add(disp), Selection.b);
 
 		double sqDistA = hitA != null && hitA.getType() == HitResult.Type.BLOCK ? hitA.getPos().squaredDistanceTo(cam) : -1;
 		double sqDistB = hitB != null && hitB.getType() == HitResult.Type.BLOCK ? hitB.getPos().squaredDistanceTo(cam) : -1;
