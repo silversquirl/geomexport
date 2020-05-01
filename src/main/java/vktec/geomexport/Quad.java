@@ -11,21 +11,26 @@ public class Quad {
 	public Material material;
 	public final Vec3d[] vertices;
 	public final Vec2f[] uvs;
-	public final Vec3d normal;
+	public final Vec3d[] normals;
 	public final String identifier;
 
-	public Quad(Material material, Vec3d[] vertices, Vec2f[] uvs, Vec3d normal) {
+	public Quad(Material material, Vec3d[] vertices, Vec2f[] uvs, Vec3d[] normals) {
 		this.material = material;
 		this.vertices = vertices;
 		this.uvs = uvs;
-		this.normal = normal;
+		this.normals = normals;
 
 		StringBuilder identifierBuilder = new StringBuilder();
+		boolean first = true;
 		for (Vec3d vertex : this.vertices) {
+			if (first) first = false;
+			else identifierBuilder.append(' ');
 			identifierBuilder.append(strVec(vertex));
-			identifierBuilder.append(' ');
 		}
-		identifierBuilder.append(strVec(this.normal));
+		for (Vec3d normal : this.normals) {
+			identifierBuilder.append(' ');
+			identifierBuilder.append(strVec(normal));
+		}
 		this.identifier = identifierBuilder.toString();
 	}
 
@@ -42,8 +47,9 @@ public class Quad {
 	}
 
 	public void write(ObjWriter w, ObjCaches cache) throws IOException {
-		int[] vertexIndices = new int[vertices.length];
-		int[] uvIndices = new int[vertices.length];
+		int[] vertexIndices = new int[this.vertices.length];
+		int[] uvIndices = new int[this.uvs.length];
+		int[] normalIndices = new int[this.normals.length];
 
 		int i = 0;
 		for (Vec3d vertex : this.vertices) {
@@ -57,10 +63,16 @@ public class Quad {
 			i++;
 		}
 
-		Integer normalIndex = cache.normal.putIfAbsent(strVec(this.normal), cache.normal.size());
-		if (normalIndex == null) {
-			w.writeVertexNormal(this.normal);
-			normalIndex = cache.normal.size() - 1;
+		i = 0;
+		for (Vec3d normal : this.normals) {
+			Integer normalIndex = cache.normal.putIfAbsent(strVec(normal), cache.normal.size());
+			if (normalIndex == null) {
+				w.writeVertexNormal(normal);
+				normalIndices[i] = cache.normal.size() - 1;
+			} else {
+				normalIndices[i] = normalIndex;
+			}
+			i++;
 		}
 
 		i = 0;
@@ -76,6 +88,6 @@ public class Quad {
 		}
 
 		w.useMtl(this.material.name);
-		w.writeFace(vertexIndices, uvIndices, normalIndex);
+		w.writeFace(vertexIndices, uvIndices, normalIndices);
 	}
 }

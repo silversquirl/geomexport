@@ -30,13 +30,13 @@ public class ObjWriter extends WavefrontWriter {
 		this.writefln("vn %f %f %f", vertexNormal.x, vertexNormal.y, vertexNormal.z);
 	}
 
-	public void writeFace(int[] vertexIndices, int[] uvIndices, int normalIndex) throws IOException {
+	public void writeFace(int[] vertexIndices, int[] uvIndices, int[] normalIndices) throws IOException {
 		this.file.write("f");
-		normalIndex++;
 		for (int i = 0; i < vertexIndices.length; i++) {
 			int vert = vertexIndices[i] + 1;
 			int uv = uvIndices[i] + 1;
-			this.writef(" %d/%d/%d", vert, uv, normalIndex);
+			int normal = normalIndices[i] + 1;
+			this.writef(" %d/%d/%d", vert, uv, normal);
 		}
 		this.file.newLine();
 	}

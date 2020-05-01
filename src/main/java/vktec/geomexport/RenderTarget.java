@@ -13,7 +13,6 @@ import net.minecraft.util.math.Vec3d;
 public abstract class RenderTarget implements VertexConsumer {
 	protected final BlockPos origin;
 	protected Vec3d transpose;
-	protected Vec3d normal;
 	protected final ObjCaches cache;
 
 	private Vec3d[] vertexBuffer;
@@ -36,6 +35,7 @@ public abstract class RenderTarget implements VertexConsumer {
 	protected void resetBuffers() {
 		this.vertexBuffer = new Vec3d[4];
 		this.uvBuffer = new UV[4];
+		this.normalBuffer = new Vec3d[4];
 		this.vertexCount = 0;
 	}
 
@@ -76,9 +76,7 @@ public abstract class RenderTarget implements VertexConsumer {
 	}
 
 	public VertexConsumer normal(float x, float y, float z) {
-		if (this.normal == null) {
-			this.normal = new Vec3d(x, y, z);
-		}
+		this.normalBuffer[vertexCount] = new Vec3d(x, y, z);
 		return this;
 	}
 
@@ -114,7 +112,7 @@ public abstract class RenderTarget implements VertexConsumer {
 			}
 
 			Material mat = Material.create(sprite, this.tint, this.cache);
-			Quad quad = new Quad(mat, this.vertexBuffer, this.uvBuffer, this.normal);
+			Quad quad = new Quad(mat, this.vertexBuffer, this.uvBuffer, this.normalBuffer);
 			this.addQuad(quad);
 
 			this.resetBuffers();
